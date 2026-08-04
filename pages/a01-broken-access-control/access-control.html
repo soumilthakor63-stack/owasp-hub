@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Access Control // Field Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0f0d;
+    --panel: #101512;
+    --panel-2: #141a16;
+    --line: #23302a;
+    --line-soft: #1a2320;
+    --amber: #f2b544;
+    --green: #6fd68a;
+    --green-dim: #3f7a52;
+    --red: #e5605a;
+    --text: #d9e2dc;
+    --text-dim: #8fa198;
+    --text-faint: #556058;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(111,214,138,0.05), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(242,181,68,0.04), transparent 40%);
+  }
+  .scanlines{
+    position: fixed; inset:0; pointer-events:none; z-index: 50;
+    background: repeating-linear-gradient(180deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode: overlay;
+  }
+  .wrap{ max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  /* HEADER */
+  .topbar{
+    display:flex; justify-content: space-between; align-items:center;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px; margin-bottom: 28px;
+  }
+  .brand{ display:flex; align-items:center; gap: 10px; }
+  .brand-dot{ width:9px; height:9px; border-radius:50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+  .brand-text{ font-family:'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+  .brand-text b{ color: var(--green); }
+  .nav-btns{ display:flex; gap: 8px; }
+  .navbtn{
+    font-family:'IBM Plex Mono', monospace; font-size: 12px; letter-spacing:0.06em;
+    background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+    padding: 8px 14px; border-radius: 3px; cursor:pointer; text-transform: uppercase;
+    transition: all .15s ease;
+  }
+  .navbtn:hover{ border-color: var(--green-dim); color: var(--green); }
+  .navbtn.active{ background: rgba(111,214,138,0.08); border-color: var(--green); color: var(--green); }
+
+  h1{ font-family:'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; color:#eef5f0; }
+  .subtitle{ color: var(--text-dim); font-size: 14px; margin-bottom: 28px; }
+  .subtitle .tag{ color: var(--amber); font-family:'IBM Plex Mono', monospace; }
+
+  /* ============ QUIZ VIEW ============ */
+  #quiz-progress-wrap{ margin-bottom: 22px; }
+  #quiz-progress-label{ display:flex; justify-content: space-between; font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  #quiz-progress-track{ height: 4px; background: var(--line-soft); border-radius: 2px; overflow:hidden; }
+  #quiz-progress-fill{ height:100%; background: var(--green); width:0%; transition: width .3s ease; }
+
+  .qcard{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 24px 24px 20px;
+    margin-bottom: 18px;
+  }
+  .qcat{
+    font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--amber); margin-bottom: 10px; display:inline-block;
+    border: 1px solid rgba(242,181,68,0.3); padding: 3px 8px; border-radius: 3px;
+  }
+  .qtext{ font-size: 16px; color: #eef5f0; margin: 4px 0 18px; font-weight: 500; }
+  .opts{ display:flex; flex-direction:column; gap: 10px; }
+  .opt{
+    display:flex; align-items:flex-start; gap: 12px;
+    border: 1px solid var(--line); background: var(--panel-2);
+    padding: 12px 14px; border-radius: 4px; cursor:pointer;
+    font-size: 14px; color: var(--text); transition: all .12s ease;
+  }
+  .opt:hover{ border-color: var(--green-dim); }
+  .opt .letter{
+    font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-faint);
+    border: 1px solid var(--line); width: 22px; height:22px; min-width:22px; border-radius: 3px;
+    display:flex; align-items:center; justify-content:center; margin-top: 1px;
+  }
+  .opt.selected{ border-color: var(--amber); background: rgba(242,181,68,0.06); }
+  .opt.selected .letter{ border-color: var(--amber); color: var(--amber); }
+  .opt.correct{ border-color: var(--green); background: rgba(111,214,138,0.09); }
+  .opt.correct .letter{ border-color: var(--green); color: var(--green); background: rgba(111,214,138,0.15); }
+  .opt.wrong{ border-color: var(--red); background: rgba(229,96,90,0.08); }
+  .opt.wrong .letter{ border-color: var(--red); color: var(--red); }
+  .opt.disabled{ cursor: default; }
+
+  .explain{
+    margin-top: 14px; padding: 12px 14px; border-radius: 4px;
+    background: var(--panel-2); border-left: 3px solid var(--green-dim);
+    font-size: 13.5px; color: var(--text-dim); display:none;
+  }
+  .explain.show{ display:block; }
+  .explain b{ color: var(--text); }
+
+  .qfooter{ display:flex; justify-content: flex-end; margin-top: 4px; }
+  .nextbtn{
+    font-family:'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.04em;
+    background: var(--green); color: #0b0f0d; border: none; padding: 10px 20px;
+    border-radius: 3px; cursor:pointer; font-weight: 600; display:none; text-transform: uppercase;
+  }
+  .nextbtn.show{ display:inline-block; }
+  .nextbtn:hover{ background: #86e29c; }
+
+  /* RESULTS */
+  #results{ display:none; text-align:center; padding: 40px 20px; }
+  #results.show{ display:block; }
+  .score-ring{
+    width: 160px; height:160px; border-radius: 50%; margin: 0 auto 22px;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    border: 3px solid var(--green);
+    box-shadow: 0 0 30px rgba(111,214,138,0.15);
+  }
+  .score-num{ font-family:'IBM Plex Mono', monospace; font-size: 40px; font-weight: 700; color: var(--green); }
+  .score-den{ font-family:'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); }
+  .score-verdict{ font-size: 18px; color: #eef5f0; margin-bottom: 6px; font-weight: 500; }
+  .score-desc{ font-size: 14px; color: var(--text-dim); max-width: 440px; margin: 0 auto 26px; }
+  .resultbtns{ display:flex; gap: 12px; justify-content:center; flex-wrap: wrap; }
+
+  /* ============ CHECKLIST VIEW ============ */
+  #checklist-view{ display:none; }
+  #checklist-view.show{ display:block; }
+  .phase{
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+    margin-bottom: 16px; overflow:hidden;
+  }
+  .phase-head{
+    display:flex; align-items:center; gap: 12px; padding: 14px 18px;
+    border-bottom: 1px solid var(--line); background: var(--panel-2);
+  }
+  .phase-num{
+    font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--green);
+    border: 1px solid var(--green-dim); width: 26px; height: 26px; border-radius: 4px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .phase-title{ font-weight: 600; font-size: 15px; color: #eef5f0; }
+  .phase-body{ padding: 6px 18px 14px; }
+  .checkitem{
+    display:flex; align-items:flex-start; gap: 10px; padding: 9px 0;
+    border-bottom: 1px dashed var(--line-soft); font-size: 14px;
+  }
+  .checkitem:last-child{ border-bottom:none; }
+  .checkbox{
+    width: 18px; height: 18px; border: 1px solid var(--text-faint); border-radius: 3px;
+    flex-shrink:0; margin-top: 2px; cursor:pointer; position:relative; transition: all .12s ease;
+  }
+  .checkbox.checked{ background: var(--green); border-color: var(--green); }
+  .checkbox.checked::after{
+    content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:#0b0f0d; font-size: 12px; font-weight:700;
+  }
+  .checklabel{ cursor:pointer; }
+  .checklabel .mono{ font-family:'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--amber); background: rgba(242,181,68,0.07); padding: 1px 5px; border-radius: 3px; }
+
+  .payload-box{
+    background: #0d1210; border: 1px solid var(--line); border-radius: 4px;
+    padding: 12px 14px; margin: 8px 0 14px; font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px; color: var(--green); white-space: pre-wrap; word-break: break-word;
+    position: relative;
+  }
+  .payload-label{ font-family:'IBM Plex Sans',sans-serif; font-size: 12px; color: var(--text-dim); margin: 14px 0 4px; }
+  .copy-btn{
+    position: absolute; top: 8px; right: 8px; font-family:'IBM Plex Mono', monospace;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text-dim);
+    padding: 3px 8px; border-radius: 3px; cursor: pointer;
+  }
+  .copy-btn:hover{ color: var(--green); border-color: var(--green-dim); }
+  .copy-btn.copied{ color: var(--green); border-color: var(--green); }
+
+  .progress-summary{
+    font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim);
+    text-align: center; margin-bottom: 20px; padding: 10px; border: 1px solid var(--line);
+    border-radius: 4px; background: var(--panel);
+  }
+  .progress-summary b{ color: var(--green); }
+
+  @media (max-width: 560px){
+    .qcard{ padding: 18px 16px; }
+    h1{ font-size: 21px; }
+    .topbar{ flex-direction: column; align-items: flex-start; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div class="brand-text"><b>webVAPT</b> // access_control_module</div>
+    </div>
+    <div class="nav-btns">
+      <button class="navbtn active" id="btn-quiz" onclick="showView('quiz')">Quiz</button>
+      <button class="navbtn" id="btn-checklist" onclick="showView('checklist')">Field manual ↗</button>
+    </div>
+  </div>
+
+  <!-- ============ QUIZ VIEW ============ -->
+  <div id="quiz-view">
+    <h1 id="quiz-title">Access Control &amp; Privilege Escalation — Knowledge Check</h1>
+    <p class="subtitle">20 questions covering everything we've walked through — from access control basics to IDOR, GUID leaks, and platform-level bypasses. <span class="tag">Score shown at the end.</span></p>
+
+    <div id="quiz-progress-wrap">
+      <div id="quiz-progress-label"><span id="progress-text">Question 1 of 20</span><span id="progress-score">Score: 0</span></div>
+      <div id="quiz-progress-track"><div id="quiz-progress-fill"></div></div>
+    </div>
+
+    <div id="quiz-body"></div>
+
+    <div id="results">
+      <div class="score-ring">
+        <div class="score-num" id="final-score">0</div>
+        <div class="score-den">out of 20</div>
+      </div>
+      <div class="score-verdict" id="score-verdict">—</div>
+      <div class="score-desc" id="score-desc">—</div>
+      <div class="resultbtns">
+        <button class="navbtn" onclick="restartQuiz()">Retake quiz</button>
+        <button class="navbtn active" onclick="showView('checklist')">Go to field manual ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CHECKLIST VIEW ============ -->
+  <div id="checklist-view">
+    <h1>Bug Hunter's Field Manual</h1>
+    <p class="subtitle">A start-to-end methodology for testing access control on a real target — plus the exact payloads used throughout this training. <span class="tag">Check items off as you go.</span></p>
+
+    <div class="progress-summary">Checklist progress: <b id="check-progress">0 / 0</b> steps completed</div>
+
+    <div id="phases"></div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   QUIZ DATA
+   ============================================================ */
+const QUESTIONS = [
+  {
+    cat: "Fundamentals",
+    q: "What is the core job of 'Access Control' in a web app?",
+    opts: [
+      "Confirming a user is who they claim to be",
+      "Deciding whether a logged-in user is allowed to perform a specific action",
+      "Keeping track of a user's session across requests",
+      "Encrypting data sent between browser and server"
+    ],
+    correct: 1,
+    explain: "Authentication confirms identity, session management tracks you across requests — access control is the separate layer that decides <b>what you're allowed to do</b> once you're identified."
+  },
+  {
+    cat: "Fundamentals",
+    q: "A normal user manages to open an admin-only 'delete user' page. What category of bug is this?",
+    opts: ["Horizontal privilege escalation", "Vertical privilege escalation", "Context-dependent bypass", "Referer bypass"],
+    correct: 1,
+    explain: "Vertical = a lower-rank user gains access to higher-rank functionality. This is the classic definition."
+  },
+  {
+    cat: "Fundamentals",
+    q: "User A reads User B's private messages, even though both are regular, same-level users. What is this called?",
+    opts: ["Vertical privilege escalation", "Context-dependent access control failure", "Horizontal privilege escalation", "Platform misconfiguration"],
+    correct: 2,
+    explain: "Horizontal = same rank, but accessing someone else's resources instead of your own."
+  },
+  {
+    cat: "Unprotected Functionality",
+    q: "An admin page loads with zero login prompt when visited directly, even though it's not linked in the UI. What's the root cause?",
+    opts: [
+      "The URL is too predictable",
+      "No access check was coded on that route at all",
+      "The session cookie expired",
+      "The Referer header was missing"
+    ],
+    correct: 1,
+    explain: "This is 'unprotected functionality' — hiding a link is not the same as actually protecting the endpoint on the server."
+  },
+  {
+    cat: "Unprotected Functionality",
+    q: "Which file might accidentally reveal a hidden admin URL to search-engine crawlers (and therefore to attackers)?",
+    opts: ["favicon.ico", "robots.txt", "manifest.json", "index.html"],
+    correct: 1,
+    explain: "robots.txt lists paths meant to be excluded from search indexing — ironically, this can leak the exact path of a 'hidden' page."
+  },
+  {
+    cat: "Security by Obscurity",
+    q: "A random admin URL like /x7f2-mgmt-portal is still discoverable. What's the most likely leak source discussed?",
+    opts: [
+      "DNS records",
+      "Front-end JavaScript that references the URL even for non-admin users",
+      "The server's SSL certificate",
+      "Browser autofill history"
+    ],
+    correct: 1,
+    explain: "Even if the JS logic hides the link visually (isAdmin check), the URL string itself is still sent to every browser inside the page's JS — viewable via page source."
+  },
+  {
+    cat: "Parameter Tampering",
+    q: "A site decides your role using ?role=1 in the URL. What's the core mistake here?",
+    opts: [
+      "Using GET instead of POST",
+      "Trusting a value the user can freely edit, without server-side verification",
+      "Not using HTTPS",
+      "Storing role as a number instead of a string"
+    ],
+    correct: 1,
+    explain: "Parameter-based access control fails when the app trusts user-editable input (URL params, cookies, hidden fields) instead of checking the real user identity server-side."
+  },
+  {
+    cat: "Parameter Tampering",
+    q: "In the 'roleid' lab, why did changing your role actually work permanently — not just for one request?",
+    opts: [
+      "Because the browser cached the fake role",
+      "Because the server wrote the submitted roleid directly into your real database record",
+      "Because admin status is stored in a cookie only",
+      "Because PortSwigger labs reset every hour"
+    ],
+    correct: 1,
+    explain: "The backend blindly saved whatever fields you sent — including roleid — straight to the database. It wasn't a spoofed value 'in transit'; your actual DB row was rewritten."
+  },
+  {
+    cat: "Platform Misconfiguration",
+    q: "A firewall blocks POST /admin/deleteUser. What header can sometimes be used to bypass this kind of rule?",
+    opts: ["X-Forwarded-For", "X-Original-URL", "Content-Type", "Accept-Language"],
+    correct: 1,
+    explain: "X-Original-URL (or X-Rewrite-URL on some frameworks) can override which URL the backend actually processes, while the firewall only inspects the visible request line."
+  },
+  {
+    cat: "Platform Misconfiguration",
+    q: "A rule only blocks the POST method on a sensitive URL. What's the simplest bypass?",
+    opts: [
+      "Encode the URL in Base64",
+      "Send the exact same request using GET instead",
+      "Add a random query string",
+      "Send it twice"
+    ],
+    correct: 1,
+    explain: "If the access rule only checks one HTTP method, sending the same action via a different method (GET, PUT, etc.) can slip past that rule entirely."
+  },
+  {
+    cat: "URL-Matching Discrepancy",
+    q: "Which of these is NOT a realistic URL-matching bypass we covered?",
+    opts: [
+      "/ADMIN/DELETEUSER (case change)",
+      "/admin/deleteUser/ (trailing slash)",
+      "/admin/deleteUser.json (extension trick)",
+      "/admin/deleteUser?debug=true (adding a random query param)"
+    ],
+    correct: 3,
+    explain: "Adding a harmless query param doesn't change route matching. Case, trailing slash, and file-extension quirks are the real documented bypass patterns."
+  },
+  {
+    cat: "IDOR",
+    q: "What does IDOR stand for?",
+    opts: [
+      "Internal Data Object Rule",
+      "Insecure Direct Object Reference",
+      "Identity-Driven Object Restriction",
+      "Indirect Data Ownership Record"
+    ],
+    correct: 1,
+    explain: "Insecure Direct Object Reference — the app lets you reference an object (file/record) directly via an ID, without verifying you're allowed to see it."
+  },
+  {
+    cat: "IDOR",
+    q: "Changing ?account_number=4471 to 4472 and viewing a stranger's bank statement is an example of:",
+    opts: ["Referer bypass", "IDOR leading to horizontal privilege escalation", "Location-based bypass", "Multi-step skip"],
+    correct: 1,
+    explain: "Classic database-record IDOR — a direct numeric ID with no ownership check, resulting in horizontal privilege escalation."
+  },
+  {
+    cat: "IDOR",
+    q: "In the live-chat transcript lab, why were files like /static/3.txt exploitable?",
+    opts: [
+      "They were encrypted with a weak cipher",
+      "They used predictable sequential filenames with no ownership check on download",
+      "They required a valid session token to download",
+      "They were only accessible via internal IP"
+    ],
+    correct: 1,
+    explain: "Static file IDOR: predictable, sequential filenames + zero check on who's allowed to download which file."
+  },
+  {
+    cat: "GUIDs",
+    q: "Why can a GUID-based ID still be exploited, even though it can't realistically be guessed?",
+    opts: [
+      "GUIDs are always stored in plaintext",
+      "The GUID can leak elsewhere in the app (e.g. an unrelated API response) where an attacker finds it",
+      "GUIDs are shorter than they look",
+      "Browsers auto-complete GUIDs"
+    ],
+    correct: 1,
+    explain: "Randomness prevents guessing, not exposure. If the GUID is disclosed somewhere else in the app (comments, activity feeds, shared links), the attacker never needs to guess it."
+  },
+  {
+    cat: "Data Leakage",
+    q: "A server responds with a 302 redirect to /login for an unauthorized request — but why might this still be a vulnerability?",
+    opts: [
+      "302 redirects are inherently insecure",
+      "The response body might still contain sensitive data before the browser follows the redirect",
+      "302 always means the account was deleted",
+      "It reveals the server's IP address"
+    ],
+    correct: 1,
+    explain: "A tool like Burp Suite can inspect the raw response — sometimes sensitive data is already sitting in the body even though a redirect was also issued."
+  },
+  {
+    cat: "Combo Attacks",
+    q: "What does 'Horizontal to Vertical' privilege escalation mean?",
+    opts: [
+      "Switching from GET to POST requests",
+      "A horizontal IDOR happens to land on a higher-privileged (e.g. admin) account, escalating the impact",
+      "Bypassing a Referer header check",
+      "Using a VPN to change your access level"
+    ],
+    correct: 1,
+    explain: "If your horizontal IDOR loop (?id=1..500) happens to land on an admin's account, you've effectively achieved vertical escalation too."
+  },
+  {
+    cat: "Multi-Step Flows",
+    q: "In a 3-step 'update role' wizard, access checks exist on steps 1 & 2 but not step 3. What's the exploit?",
+    opts: [
+      "Send extra cookies with step 1",
+      "Capture and replay only the step 3 request directly, skipping the earlier steps",
+      "Use a different browser for each step",
+      "Wait 24 hours between steps"
+    ],
+    correct: 1,
+    explain: "If the final step doesn't independently verify permissions, you can jump straight to it and skip the protected earlier steps entirely."
+  },
+  {
+    cat: "Referer Bypass",
+    q: "Why is checking the Referer header for access control considered weak?",
+    opts: [
+      "It's deprecated in HTTP/2",
+      "It's fully controlled by the client and can be freely forged by an attacker's tools",
+      "It only works over HTTPS",
+      "Browsers block it by default"
+    ],
+    correct: 1,
+    explain: "The Referer header is just client-supplied text — tools like Burp Suite let an attacker set it to anything, including a fake '/admin' origin."
+  },
+  {
+    cat: "Prevention",
+    q: "Which principle is part of the official defense-in-depth checklist for access control?",
+    opts: [
+      "Allow by default, block known bad actors",
+      "Deny access by default unless a resource is meant to be public",
+      "Hide sensitive URLs using long random strings only",
+      "Rely on the Referer header for sensitive actions"
+    ],
+    correct: 1,
+    explain: "'Deny by default' is a core principle — explicitly allow only what should be accessible, rather than trying to block off the bad cases one by one."
+  }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+
+const quizBody = document.getElementById('quiz-body');
+const progressFill = document.getElementById('quiz-progress-fill');
+const progressText = document.getElementById('progress-text');
+const progressScore = document.getElementById('progress-score');
+
+function renderQuestion(){
+  answered = false;
+  const item = QUESTIONS[current];
+  progressText.textContent = `Question ${current+1} of ${QUESTIONS.length}`;
+  progressScore.textContent = `Score: ${score}`;
+  progressFill.style.width = ((current)/QUESTIONS.length*100) + '%';
+
+  const letters = ['A','B','C','D'];
+  quizBody.innerHTML = `
+    <div class="qcard">
+      <span class="qcat">${item.cat}</span>
+      <div class="qtext">${item.q}</div>
+      <div class="opts" id="opts">
+        ${item.opts.map((o,i)=>`
+          <div class="opt" data-i="${i}" onclick="selectOpt(${i})">
+            <div class="letter">${letters[i]}</div>
+            <div>${o}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="explain" id="explain"><b>Explanation:</b> ${item.explain}</div>
+      <div class="qfooter"><button class="nextbtn" id="nextbtn" onclick="nextQuestion()">${current === QUESTIONS.length-1 ? 'See results' : 'Next question'} →</button></div>
+    </div>
+  `;
+}
+
+function selectOpt(i){
+  if(answered) return;
+  answered = true;
+  const item = QUESTIONS[current];
+  const opts = document.querySelectorAll('#opts .opt');
+  opts.forEach(o=>o.classList.add('disabled'));
+  opts[i].classList.add('selected');
+  if(i === item.correct){
+    opts[i].classList.add('correct');
+    score++;
+  } else {
+    opts[i].classList.add('wrong');
+    opts[item.correct].classList.add('correct');
+  }
+  document.getElementById('explain').classList.add('show');
+  document.getElementById('nextbtn').classList.add('show');
+  progressScore.textContent = `Score: ${score}`;
+}
+
+function nextQuestion(){
+  if(current < QUESTIONS.length - 1){
+    current++;
+    renderQuestion();
+  } else {
+    finishQuiz();
+  }
+}
+
+function finishQuiz(){
+  progressFill.style.width = '100%';
+  progressText.textContent = `Question ${QUESTIONS.length} of ${QUESTIONS.length}`;
+  document.getElementById('quiz-body').style.display = 'none';
+  document.getElementById('quiz-progress-wrap').style.display = 'none';
+  document.getElementById('results').classList.add('show');
+  document.getElementById('final-score').textContent = score;
+
+  const pct = score / QUESTIONS.length;
+  const ring = document.querySelector('.score-ring');
+  const verdict = document.getElementById('score-verdict');
+  const desc = document.getElementById('score-desc');
+
+  if(pct >= 0.85){
+    ring.style.borderColor = 'var(--green)';
+    verdict.textContent = 'Solid grasp — ready for the labs';
+    verdict.style.color = 'var(--green)';
+    desc.textContent = "You clearly understand the core concepts. Head to the field manual and start hunting for real.";
+  } else if(pct >= 0.6){
+    ring.style.borderColor = 'var(--amber)';
+    verdict.textContent = 'Good progress, a few gaps remain';
+    verdict.style.color = 'var(--amber)';
+    desc.textContent = "You've got the fundamentals but missed a few specifics — worth a quick re-read of the missed topics before jumping into labs.";
+  } else {
+    ring.style.borderColor = 'var(--red)';
+    verdict.textContent = 'Needs another pass';
+    verdict.style.color = 'var(--red)';
+    desc.textContent = "A fair number of concepts didn't stick yet — go back through the vulnerability catalog before attempting labs.";
+  }
+}
+
+function restartQuiz(){
+  current = 0; score = 0; answered = false;
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('quiz-body').style.display = 'block';
+  document.getElementById('quiz-progress-wrap').style.display = 'block';
+  renderQuestion();
+}
+
+/* ============================================================
+   CHECKLIST + PAYLOAD DATA
+   ============================================================ */
+const PHASES = [
+  {
+    title: "Recon — map the app before touching anything",
+    items: [
+      { text: "Check <span class='mono'>/robots.txt</span> for Disallow entries hinting at hidden admin paths" },
+      { text: "Check <span class='mono'>/sitemap.xml</span> for additional listed routes" },
+      { text: "View page source / JS bundles for hardcoded admin URLs (search for <span class='mono'>isAdmin</span>, <span class='mono'>role</span>, <span class='mono'>admin</span>)" },
+      { text: "Log in as a low-privilege user and note every visible role/permission field in forms" },
+      { text: "List every endpoint you can reach normally (map roles: guest, user, admin)" }
+    ]
+  },
+  {
+    title: "Vertical escalation — can a low-priv user reach high-priv functions?",
+    items: [
+      { text: "Manually browse to guessed/leaked admin URLs directly (no login prompt = vulnerable)" },
+      { text: "Brute-force common admin paths with a wordlist tool (ffuf / gobuster / dirbuster)", payload: "ffuf -u https://target.com/FUZZ -w common-admin-paths.txt" },
+      { text: "Try well-known parameter names for privilege fields", payload: "?admin=true\n?role=1  →  ?role=99\n?isAdmin=false  →  ?isAdmin=true" },
+      { text: "Search hidden HTML input fields on your own profile page for privilege-related names (roleid, isAdmin, accountType)" },
+      { text: "If found, inject that field into a normal-looking request body and resend", payload: '{"email":"you@test.com","roleid":2}' }
+    ]
+  },
+  {
+    title: "Platform layer — test the server/proxy, not just the app",
+    items: [
+      { text: "Send the same blocked request with header override tricks", payload: "POST / HTTP/1.1\nX-Original-URL: /admin/deleteUser\n\n(also try: X-Rewrite-URL, X-Custom-IP-Authorization)" },
+      { text: "Swap the HTTP method on a blocked endpoint (POST → GET → PUT → DELETE)", payload: "GET /admin/deleteUser?id=5 HTTP/1.1" },
+      { text: "Try case variations, trailing slashes, and fake extensions on blocked paths", payload: "/ADMIN/DELETEUSER\n/admin/deleteUser/\n/admin/deleteUser.json\n/admin/deleteUser.anything" }
+    ]
+  },
+  {
+    title: "Horizontal escalation — can you reach someone else's data?",
+    items: [
+      { text: "Identify any numeric or sequential ID in URLs, then increment/decrement it", payload: "/myaccount?id=123  →  /myaccount?id=124\n/statements?account_number=4471  →  4472" },
+      { text: "Test static file endpoints for sequential/predictable naming", payload: "/static/13.txt  →  1.txt, 2.txt, 3.txt ... loop" },
+      { text: "Automate the loop instead of testing manually (browser console version)", payload: "for (let i=1;i<40;i++){\n  fetch(`/static/${i}.txt`)\n    .then(r=>r.text())\n    .then(t=>{ if(t.toLowerCase().includes('password'))\n      console.log(i, t); });\n}" },
+      { text: "For GUID/UUID-based IDs: search other app features (comments, activity feeds, notifications, API responses) for a leaked ID instead of trying to guess it" },
+      { text: "Intercept 'access denied' redirect responses raw (Burp) — check if sensitive data is present in the body before the redirect" }
+    ]
+  },
+  {
+    title: "Combo + business logic checks",
+    items: [
+      { text: "If horizontal IDOR works, loop across a wide ID range and check if any result belongs to an admin/high-priv account (horizontal → vertical)" },
+      { text: "For multi-step forms/wizards: capture the final 'confirm' step's request and replay it directly, skipping earlier steps", payload: "POST /admin/updateRole/confirm\nid=456&role=admin" },
+      { text: "Test Referer-based checks by forging the header on a direct request", payload: "Referer: https://target.com/admin" },
+      { text: "Test geo-restrictions using a VPN or spoofed browser geolocation (DevTools → Sensors)" }
+    ]
+  },
+  {
+    title: "Wrap-up — document like a professional",
+    items: [
+      { text: "Record exact request/response pairs (raw HTTP) as proof of concept for every finding" },
+      { text: "Classify each finding precisely: unprotected functionality vs parameter tampering vs IDOR vs platform misconfig — remediation advice differs per type" },
+      { text: "Note the business impact (what real data/action was exposed), not just the technical mechanism" },
+      { text: "Suggest the fix: deny-by-default, server-side ownership checks, no client-trusted privilege fields" }
+    ]
+  }
+];
+
+const phasesEl = document.getElementById('phases');
+let totalItems = 0;
+let checkedItems = 0;
+
+PHASES.forEach((phase, pi)=>{
+  const div = document.createElement('div');
+  div.className = 'phase';
+  let bodyHtml = '';
+  phase.items.forEach((item, ii)=>{
+    totalItems++;
+    const id = `chk-${pi}-${ii}`;
+    bodyHtml += `
+      <div class="checkitem">
+        <div class="checkbox" id="${id}" onclick="toggleCheck('${id}')"></div>
+        <div class="checklabel" onclick="toggleCheck('${id}')">${item.text}</div>
+      </div>
+    `;
+    if(item.payload){
+      bodyHtml += `<div class="payload-label">Payload / example:</div>
+        <div class="payload-box">${item.payload.replace(/</g,'&lt;')}<button class="copy-btn" onclick="copyPayload(this)">Copy</button></div>`;
+    }
+  });
+  div.innerHTML = `
+    <div class="phase-head">
+      <div class="phase-num">${pi+1}</div>
+      <div class="phase-title">${phase.title}</div>
+    </div>
+    <div class="phase-body">${bodyHtml}</div>
+  `;
+  phasesEl.appendChild(div);
+});
+document.getElementById('check-progress').textContent = `0 / ${totalItems}`;
+
+function toggleCheck(id){
+  const el = document.getElementById(id);
+  const isChecked = el.classList.toggle('checked');
+  checkedItems += isChecked ? 1 : -1;
+  document.getElementById('check-progress').textContent = `${checkedItems} / ${totalItems}`;
+}
+
+function copyPayload(btn){
+  const box = btn.parentElement;
+  const text = box.textContent.replace('Copy','').trim();
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+/* ============================================================
+   VIEW SWITCHING
+   ============================================================ */
+function showView(view){
+  const quiz = document.getElementById('quiz-view');
+  const checklist = document.getElementById('checklist-view');
+  const btnQuiz = document.getElementById('btn-quiz');
+  const btnChecklist = document.getElementById('btn-checklist');
+  if(view === 'quiz'){
+    quiz.style.display = 'block';
+    checklist.classList.remove('show');
+    btnQuiz.classList.add('active');
+    btnChecklist.classList.remove('active');
+  } else {
+    quiz.style.display = 'none';
+    checklist.classList.add('show');
+    btnQuiz.classList.remove('active');
+    btnChecklist.classList.add('active');
+  }
+  window.scrollTo(0,0);
+}
+
+renderQuestion();
+</script>
+</body>
+</html>

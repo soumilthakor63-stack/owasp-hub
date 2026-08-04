@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>SSRF Quiz & Checklist</title>
+<style>
+body{font-family:Arial,sans-serif;max-width:700px;margin:30px auto;padding:0 15px;background:#0f172a;color:#e2e8f0}
+h1,h2{color:#38bdf8}
+.card{background:#1e293b;border-radius:8px;padding:16px;margin:14px 0}
+button{background:#38bdf8;border:none;color:#0f172a;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:bold;margin:4px 2px}
+button:hover{background:#0ea5e9}
+.opt{display:block;width:100%;text-align:left;background:#334155;color:#e2e8f0;margin:6px 0;padding:10px;border-radius:6px;border:none;cursor:pointer}
+.opt:hover{background:#475569}
+.correct{background:#16a34a!important}
+.wrong{background:#dc2626!important}
+#score{font-size:20px;font-weight:bold}
+pre{background:#0b1220;padding:10px;border-radius:6px;overflow-x:auto}
+.page{display:none}
+.page.active{display:block}
+ul{line-height:1.7}
+.chk{margin-bottom:14px}
+.chk label{display:block;padding:6px 8px;border-radius:5px;cursor:pointer}
+.chk label:hover{background:#334155}
+.chk input{margin-right:8px}
+.chk label.done{text-decoration:line-through;color:#94a3b8}
+</style>
+</head>
+<body>
+
+<div id="quizPage" class="page active">
+<h1>SSRF Quiz</h1>
+<div id="quizArea"></div>
+<div class="card">
+  <div id="score">Score: 0 / 0</div>
+  <button onclick="showPage('checklistPage')">Go to Checklist & Payloads</button>
+</div>
+</div>
+
+<div id="checklistPage" class="page">
+<h1>SSRF Bug Hunting Checklist</h1>
+<div class="card">
+<div id="checkProgress" style="margin-bottom:10px;font-weight:bold">Checked: 0 / 0</div>
+
+<h2>1. Recon — Find Candidate Inputs</h2>
+<div class="chk">
+<label><input type="checkbox">Any param that takes a URL/hostname (e.g. <code>stockApi</code>, <code>webhook</code>, <code>image_url</code>, <code>callback</code>)</label>
+<label><input type="checkbox">Partial URL inputs (region, path fragment plugged into a server-built URL)</label>
+<label><input type="checkbox">Headers: <code>Referer</code>, <code>X-Forwarded-Host</code></label>
+<label><input type="checkbox">File upload features that fetch from URL (avatar/import-from-URL)</label>
+<label><input type="checkbox">XML-accepting endpoints (possible XXE→SSRF)</label>
+</div>
+
+<h2>2. Confirm Basic SSRF</h2>
+<div class="chk">
+<label><input type="checkbox">Point input to your own server / Burp Collaborator → check for hit</label>
+<label><input type="checkbox">Try <code>127.0.0.1</code>, <code>localhost</code>, <code>169.254.169.254</code></label>
+<label><input type="checkbox">Compare response for valid vs invalid internal host (timing/length diff)</label>
+</div>
+
+<h2>3. Escalate</h2>
+<div class="chk">
+<label><input type="checkbox">Scan internal <code>192.168.0.0/24</code> / <code>10.0.0.0/8</code> with Burp Intruder</label>
+<label><input type="checkbox">Try common internal ports: 22, 80, 443, 8080, 8443, 3306, 6379</label>
+<label><input type="checkbox">Look for admin panels, cloud metadata endpoint, internal APIs</label>
+</div>
+
+<h2>4. If Filtered — Bypass</h2>
+<div class="chk">
+<label><input type="checkbox">Blacklist: alt IP forms (<code>127.1</code>, decimal, octal), case variation, domain resolving to 127.0.0.1</label>
+<label><input type="checkbox">Whitelist: <code>@</code> trick, <code>#</code> fragment trick, subdomain trick, encoding</label>
+<label><input type="checkbox">Chain via open redirect if direct internal IP is blocked</label>
+</div>
+
+<h2>5. If Blind</h2>
+<div class="chk">
+<label><input type="checkbox">Use OAST (Collaborator) — check DNS-only vs full HTTP hit</label>
+<label><input type="checkbox">Try triggering known actions blindly (delete/reset endpoints)</label>
+</div>
+
+<h2>6. Impact / Report</h2>
+<div class="chk">
+<label><input type="checkbox">Document: data leaked, action triggered, internal host reached</label>
+<label><input type="checkbox">Note defense bypassed (blacklist/whitelist/redirect)</label>
+<label><input type="checkbox">Suggest fix: network-level block + auth on internal services</label>
+</div>
+<button onclick="resetChecklist()">Reset Checklist</button>
+</div>
+
+<div class="card">
+<h2>Payloads Used</h2>
+<pre>Basic localhost:
+stockApi=http://localhost/admin
+
+Internal IP:
+stockApi=http://192.168.0.68/admin
+
+Blacklist bypass (IP + path):
+stockApi=http://127.1/aDmIn/delete?username=carlos
+
+Cloud metadata:
+http://169.254.169.254/latest/meta-data/iam/security-credentials/
+
+Whitelist bypass - @ trick:
+https://expected-host:fakepass@evil-host
+
+Whitelist bypass - # trick:
+https://evil-host#expected-host
+
+Whitelist bypass - subdomain trick:
+https://expected-host.evil-host
+
+Open redirect chain:
+stockApi=/product/nextProduct?currentProductId=1%26path=http://192.168.0.12:8080/admin/delete?username=carlos
+
+Blind SSRF via Referer:
+Referer: http://your-collaborator-id.oastify.com</pre>
+</div>
+<button onclick="showPage('quizPage')">Back to Quiz</button>
+</div>
+
+<script>
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+const questions=[
+{q:"What is SSRF?",a:"Server tricked into making a request to an unintended location",d:["Attacker steals a client's cookies","Server tricked into making a request to an unintended location","SQL injection variant","A type of DDoS attack"]},
+{q:"127.0.0.1 refers to:",a:"The local machine itself (loopback)",d:["A public DNS server","The local machine itself (loopback)","A random internal IP","Cloudflare's IP"]},
+{q:"Why do apps often trust localhost requests?",a:"They assume only trusted insiders connect from the local machine",d:["Localhost requests are encrypted","They assume only trusted insiders connect from the local machine","Localhost is always outside the firewall","Browsers block localhost requests"]},
+{q:"192.168.x.x and 10.x.x.x addresses are examples of:",a:"Private/internal network IPs",d:["Public IPs","Private/internal network IPs","Loopback addresses","DNS root servers"]},
+{q:"A blacklist filter mainly fails because:",a:"It only blocks patterns the developer thought of, missing equivalents",d:["It blocks too much traffic","It only blocks patterns the developer thought of, missing equivalents","It requires a login","It only works on HTTPS"]},
+{q:"In http://127.1/admin, '127.1' is:",a:"A shorthand form of 127.0.0.1",d:["An invalid IP","A shorthand form of 127.0.0.1","A private domain name","A typo"]},
+{q:"In https://expected-host:pass@evil-host, the real host is:",a:"evil-host",d:["expected-host","evil-host","pass","Both hosts equally"]},
+{q:"In https://evil-host#expected-host, what happens to '#expected-host'?",a:"It's a fragment never sent to the server",d:["It becomes the real host","It's a fragment never sent to the server","It overrides evil-host","It causes a redirect"]},
+{q:"What does an open redirect bypass rely on?",a:"A trusted URL that itself redirects to the attacker's real target",d:["Directly submitting the internal IP","A trusted URL that itself redirects to the attacker's real target","Encoding the entire payload twice","Using HTTPS instead of HTTP"]},
+{q:"Blind SSRF means:",a:"The request fires but the response is never shown back to the attacker",d:["The vulnerability can't be exploited at all","The request fires but the response is never shown back to the attacker","The attacker is blocked by a firewall","SSRF only works on images"]},
+{q:"Best way to detect blind SSRF is:",a:"Out-of-band detection (OAST) using a domain you control",d:["Reading the page source","Out-of-band detection (OAST) using a domain you control","Brute-forcing passwords","Checking response time only"]},
+{q:"169.254.169.254 is commonly known as:",a:"The cloud metadata service address",d:["A public search engine IP","The cloud metadata service address","A DNS resolver","A load balancer IP"]},
+{q:"The strongest anti-SSRF defense is:",a:"Requiring real authentication on internal services",d:["A blacklist of bad words","Requiring real authentication on internal services","Lowercasing all input","Blocking cookies"]},
+{q:"SSRF differs from CSRF because:",a:"SSRF abuses the server's request-making ability, CSRF abuses the client's browser",d:["They are the same thing","SSRF abuses the server's request-making ability, CSRF abuses the client's browser","CSRF only works on mobile","SSRF requires no user interaction ever"]},
+{q:"SSRF via the Referer header works because:",a:"Analytics software auto-visits URLs found in Referer, which attacker controls",d:["Referer is encrypted by default","Analytics software auto-visits URLs found in Referer, which attacker controls","Referer bypasses all firewalls","Browsers send Referer to internal IPs only"]}
+];
+
+let idx=0,score=0,total=0,answered=false;
+function loadQ(){
+  const box=document.getElementById('quizArea');
+  if(idx>=questions.length){box.innerHTML="<div class='card'><h2>Quiz complete!</h2></div>";return;}
+  const item=questions[idx];
+  const opts=shuffle([...item.d]);
+  answered=false;
+  let html=`<div class="card"><b>Q${idx+1}. ${item.q}</b><br><br>`;
+  opts.forEach(o=>{html+=`<button class="opt" onclick="check(this,'${o.replace(/'/g,"\\'")}','${item.a.replace(/'/g,"\\'")}')">${o}</button>`;});
+  html+=`</div>`;
+  box.innerHTML=html;
+}
+function check(btn,chosen,correct){
+  if(answered)return;
+  answered=true;total++;
+  document.querySelectorAll('.opt').forEach(b=>{
+    if(b.innerText===correct)b.classList.add('correct');
+    if(b===btn&&chosen!==correct)b.classList.add('wrong');
+    b.disabled=true;
+  });
+  if(chosen===correct)score++;
+  document.getElementById('score').innerText=`Score: ${score} / ${total}`;
+  setTimeout(()=>{idx++;loadQ();},900);
+}
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+loadQ();
+
+const allChecks=document.querySelectorAll('.chk input[type=checkbox]');
+function updateProgress(){
+  const checked=document.querySelectorAll('.chk input:checked').length;
+  document.getElementById('checkProgress').innerText=`Checked: ${checked} / ${allChecks.length}`;
+}
+allChecks.forEach(cb=>{
+  cb.addEventListener('change',()=>{
+    cb.parentElement.classList.toggle('done',cb.checked);
+    updateProgress();
+  });
+});
+function resetChecklist(){
+  allChecks.forEach(cb=>{cb.checked=false;cb.parentElement.classList.remove('done');});
+  updateProgress();
+}
+updateProgress();
+</script>
+</body>
+</html>

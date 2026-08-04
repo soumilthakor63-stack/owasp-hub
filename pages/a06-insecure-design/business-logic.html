@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Business Logic Vulns — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#ffffff; --line:#e1e4e8;
+  --text:#24292e; --dim:#6a737d; --accent:#0366d6; --bad:#d73a49;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;}
+h1{font-size:22px;margin:6px 0 26px;color:#111;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 4px 12px rgba(0,0,0,0.05);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#111;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#fafbfc;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#f0f4f8;box-shadow:0 0 8px rgba(3,102,214,0.1);}
+.opt.correct{background:#dcffe4;border-color:#28a745;color:#14a02e;}
+.opt.wrong{background:#ffeef0;border-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;}
+.btn{background:var(--accent);color:#fff;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#111;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#f6f8fa;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#24292e;margin:8px 0 4px;}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;font-weight:bold;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#f6f8fa;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // Business Logic Exploitation</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+// Exam-level difficulty: All options are nearly identical in length to prevent guessing.
+const Q=[
+["What is the core definition of a Business Logic Vulnerability?",["A flaw where the app works exactly as coded, but its rules can be abused","A bug caused entirely by malformed SQL syntax executed on the server","A vulnerability that is only ever found in banking applications globally","A vulnerability that always requires custom malware to exploit safely"],0,
+"The application functions exactly as the developers intended, but that intended behavior can be abused to cause harm."],
+["Why are automated scanners generally bad at finding business logic vulnerabilities?",["There's no malicious payload to detect; the input looks completely legitimate","Scanners are generally far too slow to process complex business logic securely","They strictly require a paid enterprise license to unlock the logic testing engine","Scanners only work on mobile applications and cannot test web servers at all"],0,
+"Because the input is valid and the flow is correct, scanners can't detect that the outcome is unintended."],
+["What is the most common ROOT CAUSE of business logic vulnerabilities?",["Flawed assumptions development teams make about user behavior locally","Weak administrative passwords configured on the backend server directly","Outdated server hardware running the application in the data center globally","Lack of HTTPS encryption configured on the main domain and subdomains safely"],0,
+"Developers assume users will follow a happy path, neglecting alternative, malicious sequences of actions."],
+["A company's app validates a form using only JavaScript in the browser, with no server-side check. What is this?",["Excessive trust in client-side controls without backend validation securely","An encryption oracle exposing sensitive data locally and completely now","A domain-specific flaw in the application logic handling securely globally","An email parser discrepancy allowing bypass logic locally and entirely"],0,
+"Never trust client-side validation. Attackers can bypass JavaScript checks using a proxy tool."],
+["In the bank transfer code example (if amount <= balance), what happens if the attacker sends a negative amount?",["The check still passes, potentially reversing the direction of the transfer","The server crashes completely and becomes unavailable to all users safely","The transfer is automatically blocked by the network firewall locally now","Nothing happens because negative numbers are always rejected by default"],0,
+"If the code only checks if amount <= balance, a negative amount passes the check and credits the sender."],
+["What is the key lesson from the 'High-level logic vulnerability' lab (leather jacket cart)?",["Sending a negative quantity makes total price negative, effectively a refund","SQL injection can bypass the login form and grant administrative access now","You must brute-force the administrative password to access the backend server","Cross-site scripting can steal the session cookies from the victim browser"],0,
+"By setting the quantity to a negative number, the total cart price becomes negative, bypassing payment."],
+["If a server rejects requests where cart_total < 0, what's the correct next step?",["Calculate the precise quantity needed to bring the total to exactly $0 or credit","Give up immediately because the application is completely secure and flawless","Try to log in as a completely different user to bypass the cart logic entirely","Use SQL injection on the checkout endpoint instead of business logic flaws"],0,
+"Find the exact negative quantity that brings the total to exactly zero to bypass the check without alerting it."],
+["What does 'excessive trust in client-side controls' specifically allow an attacker to do?",["Intercept and modify data (price, hidden fields) after it leaves the browser","Read other users' private messages directly from the backend database securely","Reset the entire application database back to its original factory state locally","Access the server's local file system and download configuration files safely"],0,
+"Attackers can modify prices, quantities, or hidden parameters in the proxy before reaching the server."],
+["What is the danger of 'failing to handle unconventional input'?",["If you don't reject values outside expected ranges, the app may process them","The application becomes significantly slower for all other legitimate users safely","It only affects mobile applications running on older operating systems locally","It causes the victim's web browser to crash instantly and completely now"],0,
+"If the app doesn't explicitly reject negative numbers or huge integers, it might process them maliciously."],
+["In the 'Inconsistent Security Controls' lab, why could the attacker gain admin access?",["Registration required a company email, but 'change email' had no verification","They brute-forced the administrative password using a custom script locally","They used SQL injection on the login form to bypass the authentication fully","They found the administrative password in the frontend page source code securely"],0,
+"The strict domain check was only applied at registration, allowing an attacker to change it post-login."],
+["What is the core lesson behind 'Trusted users won't always remain trustworthy'?",["A strict check performed once shouldn't be assumed to protect every future action","Never allow user registration on any public-facing web application ever securely","All users are inherently malicious and should be treated as hostile actors always","Passwords should never be stored in the database under any circumstances fully"],0,
+"Users might pass initial checks but then escalate privileges or change account details later."],
+["Why is deleting a parameter entirely (not just leaving it blank) effective?",["Server code may handle 'missing parameter' differently, exposing new code paths","It always crashes the server immediately causing a denial of service attack locally","It is strictly required by HTTP standards to process malformed requests securely","It bypasses HTTPS encryption completely and allows traffic interception globally"],0,
+"Code paths for 'undefined' vs 'empty string' often differ, potentially bypassing security checks."],
+["In the 2FA bypass example, what was the actual security flaw?",["The server relied on the UI to guide users without verifying OTP completion","The OTP code was far too short and easily brute-forced by the attacker locally","The OTP codes were sent via insecure SMS messages to the user's phone securely","The user's password was stored in plaintext in the backend database entirely"],0,
+"The server didn't enforce the 2FA check; it just trusted the user not to navigate directly to the dashboard."],
+["In the discount coupon 'Flawed Enforcement of Business Rules' lab, what allowed unlimited discounts?",["The server blocked the SAME coupon twice, but alternating coupons bypassed it","The coupon code was leaked publicly on a third-party developer forum securely","There was absolutely no coupon validation implemented on the backend locally","The discount was a fixed amount regardless of the total cart value globally"],0,
+"By alternating between Coupon A and Coupon B, the server's 'no consecutive duplicates' rule was bypassed."],
+["What is an 'encryption oracle' in the context of business logic vulnerabilities?",["A feature that encrypts arbitrary user data using the same key as sensitive data","A feature that predicts future application bugs and vulnerabilities securely locally","A type of network firewall that blocks unauthorized traffic completely globally","A database backup system used to restore lost information safely and securely"],0,
+"If an app lets you encrypt arbitrary text, you can use it to understand the format and forge sensitive tokens."],
+["Why is it dangerous if an app ALSO has a 'decrypt' feature alongside an encryption oracle?",["It lets an attacker decrypt real tokens to learn the exact data format for forgery","It significantly slows down the server response times for all other users securely","It has absolutely no additional danger or security impact on the system locally","It only affects the application logging mechanism and audit trails completely globally"],0,
+"By decrypting real tokens, attackers can reverse-engineer the structure and craft valid malicious tokens."],
+["What causes email address parser discrepancies to be exploitable?",["Different parts of the app may interpret the same crafted email address differently","Email addresses are always fixed-length and cannot be modified safely and locally","Emails cannot contain the '@' symbol without breaking the server entirely fully","Browsers automatically block all non-standard email formats completely and securely"],0,
+"The validation regex might accept an email that the actual mail server parses differently, causing logic flaws."],
+["What is the PRIMARY factor that determines the real-world impact of a logic vulnerability?",["What functionality the flaw is connected to (authentication vs. minor feature)","How complex the exploit code is to write and execute locally and securely safely","The length of the URL used to trigger the vulnerability directly and completely","Whether the app uses cookies or tokens for session management globally entirely"],0,
+"A logic flaw in payment processing is critical, while a logic flaw in avatar rendering is usually minor."],
+["According to the prevention section, what is an important habit for avoiding logic vulnerabilities?",["Documenting assumptions about user behavior and verifying they hold true","Using the newest programming language available for backend development securely","Hiding the source code from developers to prevent internal tampering locally","Disabling all user input fields to prevent any data submission entirely fully"],0,
+"Explicitly writing down assumptions forces developers to consider what happens if they are false."],
+["What is the single best 'attacker mindset' question to ask when hunting for logic vulnerabilities?",["'What did the developer assume, and what happens if that assumption is false?'","'What is the server's exact IP address and hosting provider securely locally?'","'How do I inject SQL queries into this specific endpoint safely and fully?'","'What web browser is the victim using to access the application safely now?'"],0,
+"Identifying the invisible rules and assumptions is the key to breaking the business logic."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Client-Side Trust", items: [
+    "Intercept all form submissions and API requests in Burp Suite.",
+    "Modify hidden fields, prices, quantities, and user IDs before they reach the server.",
+    "Check if server-side validation is missing or relies entirely on frontend JavaScript."
+  ]},
+  { title: "2. Unconventional Input", items: [
+    "Test negative values, zero, and extremely large integers in numeric fields (e.g., quantity: -1).",
+    "Send incorrect data types (e.g., a string where an integer is expected).",
+    "If a total is rejected for being < 0, calculate the exact value to make it exactly 0."
+  ]},
+  { title: "3. Inconsistent Security Controls", items: [
+    "Check if role-based checks (like domain-specific emails) are enforced only at registration.",
+    "Attempt to upgrade privileges by modifying profile fields post-registration.",
+    "Test if standard users can access administrative endpoints directly."
+  ]},
+  { title: "4. Business Rules & Flow", items: [
+    "Skip mandatory steps in a multi-step process (e.g., skip payment after cart).",
+    "Test coupon/rule enforcement: try alternating coupons to bypass 'once per user' limits.",
+    "Delete parameters entirely from requests to see if it exposes alternative code paths."
+  ]},
+  { title: "5. Oracles & Parsers", items: [
+    "Find encrypt/decrypt features to reverse-engineer sensitive token formats.",
+    "Test email parsers with crafted addresses (e.g., `admin@target.com.attacker.com`).",
+    "Document all assumptions the developer made and test the opposite behavior."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Negative Quantity", code: "POST /cart\n{\"productId\": 1, \"quantity\": -10}" },
+  { name: "2. Price Tampering", code: "POST /checkout\n{\"price\": 0.01, \"quantity\": 1}" },
+  { name: "3. Skip 2FA Step", code: "POST /login-step-1 (Valid Creds)\nGET /my-account (Direct Nav)" },
+  { name: "4. Alternating Coupons", code: "Apply NEWUSER10 -> Apply SAVE5 -> Apply NEWUSER10" },
+  { name: "5. Parameter Deletion", code: "POST /update-role\n(Delete 'role' parameter entirely)" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"LOGIC BROKEN. System completely compromised.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['📄','💼','💡','✅','🧩'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('logic_light_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('logic_light_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Prevent live HTML execution
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

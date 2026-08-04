@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Information Disclosure — Quiz & Recon Kit</title>
+<style>
+:root{
+  --bg:#0a0c10; --panel:#11151c; --line:#1e2530;
+  --text:#d1d9e6; --dim:#7b8aa5; --accent:#b388ff; --bad:#ff5252;
+  --mono:'Consolas','SF Mono','JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#0e1218;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);}
+.opt.correct{background:#231634;border-color:var(--accent);color:var(--accent);}
+.opt.wrong{background:#331515;border-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;}
+.btn{background:var(--accent);color:#0a0c10;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#0e1218;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#c5cae9;margin:8px 0 4px;}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#0e1218;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // Info Disclosure</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Quiz</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Quiz</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+const Q=[
+["What fundamentally defines an Information Disclosure vulnerability?",["An app leaks sensitive data to users without requiring a forced breach","An attacker forcefully decrypts the database credentials during transit","A server crashes and reboots due to unhandled memory exhaustion flaws","A malicious script executes arbitrary code in the victim's active session"],0,
+"Information Disclosure is about an app unintentionally leaking data it shouldn't, not an attacker forcefully breaking something."],
+["Which payload specifically tests for PHP source code disclosure via server-side extension mishandling?",["login.php?show=src","login.phps","login.php.old","login.php?raw=true"],1,
+"Extensions like .phps, .bak, or .~ are treated as plain text by the server, revealing the raw code instead of executing it."],
+["Visiting 'site.com/uploads/' and seeing a list of all files is an example of what?",["API Information Leakage","Directory Listing","User Enumeration","Source Code Exposure"],1,
+"This happens when a web server is misconfigured to show directory contents when no default index file (like index.html) exists."],
+["How do verbose error messages primarily assist an attacker?",["They block the attacker's IP automatically","They encrypt the payload automatically","They reveal backend schema and internal file paths","They crash the browser rendering engine instantly"],2,
+"Verbose errors output stack traces or SQL errors that expose backend architecture, table names, and file paths."],
+["What is the risk of leaving '<!-- TODO: remove /admin_secret -->' in frontend HTML?",["Cross-Site Request Forgery","HTML Comment Exposure","Server-Side Request Forgery","Blind SQL Injection"],1,
+"Developers often leave internal URLs, credentials, or debug flags in HTML comments, visible to anyone via 'View Source'."],
+["Which HTTP response header is most commonly analyzed for software version disclosure?",["X-Frame-Options","Server-Status","X-Content-Type","Strict-Transport"],1,
+"The 'Server' and 'X-Powered-By' headers explicitly state the web server software and version, aiding exploit selection."],
+["What behavior indicates a User Enumeration vulnerability in a login form?",["The form accepts any password if the username is valid","Divergent response messages for valid vs invalid usernames","The form clears the password field automatically on fail","The CAPTCHA fails to load when an incorrect login is tried"],1,
+"If 'Invalid username' vs 'Invalid password' messages differ, an attacker can guess valid accounts without knowing the password."],
+["When does API Information Leakage commonly occur?",["When the API returns a generic 404 status code","When JSON responses contain sensitive fields not rendered by UI","When the API strictly enforces HTTPS for all traffic","When the API rate limits user requests automatically"],1,
+"Backend APIs often return entire database objects, exposing fields like 'role' or 'password_hash' even if the frontend ignores them."],
+["What is the primary risk of an exposed '.env' file on a web server?",["It exposes internal CSS styling rules","It contains database credentials and API keys","It stores temporary user profile pictures","It logs internal server uptime statistics"],1,
+"'.env' files store environment variables used by frameworks, often containing highly sensitive application secrets."],
+["Which payload is most likely to trigger a verbose SQL error message?",["admin' --","12345' --","'","test@test' OR"],2,
+"Injecting a single quote (') breaks SQL syntax, causing the database to throw an error that reveals query structure."],
+["Why are Vim editor swap files (e.g., '.index.php.swp') dangerous if left on a server?",["They automatically execute malware on load","They redirect users to external phishing sites","The server serves them as text, exposing raw PHP code","They corrupt the backend database over time"],2,
+"The server doesn't know how to execute '.swp' files, so it treats them as plain text, leaking the source code."],
+["What does an exposed 'robots.txt' file inadvertently aid attackers in?",["Blocking DDoS network attacks","Discovering hidden administrative directories","Compressing web pages faster","Stealing active session cookies"],1,
+"While meant for search engines, 'robots.txt' explicitly lists paths developers want hidden, acting as a roadmap for attackers."],
+["How does metadata leakage typically occur in web applications?",["Through uploaded PDFs or images retaining EXIF data and author names","Through unencrypted HTTP headers sent over the network","Through predictable session cookies generated by app","Through weak password policies enforced on users"],0,
+"Uploaded files often retain hidden metadata containing software versions, internal usernames, or even GPS coordinates."],
+["If an attacker obtains a website's source code, what can they easily find?",["The server's physical location and IP","Hardcoded credentials and input validation logic","The server's RAM capacity and CPU usage","The visitor's IP address and browser"],1,
+"Source code reveals the application's 'cheat sheet', making it easy to spot hardcoded secrets or bypass validation logic."],
+["Is a version disclosure (e.g., Apache 2.4.29) alone usually a critical vulnerability?",["Yes, it instantly grants remote root access","Yes, it permanently crashes the web server","No, it is only risky if chained with a known exploit for that version","No, it has absolutely zero security impact overall"],2,
+"Version numbers are low severity alone, but become critical if a known Remote Code Execution (RCE) exploit exists for that version."],
+["Which of the following is a clear symptom of Source Code Disclosure?",["Receiving a 404 Not Found error page","Seeing '<?php echo 'hello'; ?>' rendered as text in browser","Being redirected to google.com instantly","The browser automatically downloading a PDF file"],1,
+"If you can read the server-side programming language tags (like <?php ?>), the server failed to execute the file."],
+["What is a common root cause of Information Disclosure vulnerabilities?",["Using HTTPS instead of HTTP for traffic","Forgetting to remove debug tools or internal dev comments","Implementing a Web Application Firewall rule","Hashing user passwords with bcrypt algo"],1,
+"Developers often leave debug modes on, internal comments in code, or backup files on the server when pushing to production."],
+["An API returns JSON with 'is_admin: true' but the frontend UI only displays the username. This is an example of what?",["User Enumeration","Source Code Exposure","API Data Leakage","Directory Traversal"],2,
+"The backend sends sensitive authorization data that the frontend doesn't use, allowing attackers to escalate privileges via direct API calls."],
+["What does exposing 'site.com/.git/config' reveal to an attacker?",["The victim's active session tokens","Repository configuration and potentially full source code history","The server's CPU temperature and load","The router's admin password hash"],1,
+"Exposing the '.git' directory allows attackers to download the entire version control history, reconstructing the source code."],
+["What is the difference between Source Code Disclosure and Directory Listing?",["There is no difference; they are the same vulnerability","Source Code Disclosure leaks raw code; Directory Listing leaks file names","Directory Listing executes code; Source Code Disclosure hides it","Source Code Disclosure is in Python; Directory Listing is in PHP"],1,
+"Directory Listing shows the names of files in a folder, while Source Code Disclosure shows the actual content of the executable files."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. robots.txt & Directory Listing", items: [
+    "Check <code>/robots.txt</code> for hidden paths",
+    "Test for directory listing by appending <code>/</code> to folders (e.g., <code>/uploads/</code>, <code>/images/</code>)"
+  ]},
+  { title: "2. Verbose Error Messages", items: [
+    "Input <code>'</code> or <code>\"</code> in login/search forms to trigger SQL errors",
+    "Enter weird characters in URL parameters to crash stack traces"
+  ]},
+  { title: "3. Sensitive Files Exposure", items: [
+    "Test VCS exposure: <code>/.git/config</code>, <code>/.svn/entries</code>",
+    "Test config files: <code>/.env</code>, <code>/config.php.bak</code>, <code>/web.config</code>",
+    "Fuzz for backups: <code>/backup.zip</code>, <code>/backup.sql</code>, <code>/database.bak</code>"
+  ]},
+  { title: "4. Source Code Disclosure", items: [
+    "Test extensions: <code>login.php.bak</code>, <code>login.php~</code>, <code>login.phps</code>",
+    "Test editor swap files: <code>.index.php.swp</code>, <code>index.php.save</code>, <code>index.php.old</code>"
+  ]},
+  { title: "5. Version Disclosure (Headers)", items: [
+    "Check HTTP Response Headers for <code>Server</code> and <code>X-Powered-By</code>",
+    "Search for known CVEs for the exact version found"
+  ]},
+  { title: "6. Comments in HTML/JS", items: [
+    "View Page Source (<code>Ctrl+U</code>) for HTML comments (<code>&lt;!-- TODO --&gt;</code>)",
+    "Check JS files for hardcoded API endpoints or hidden admin routes"
+  ]},
+  { title: "7. Metadata Leakage", items: [
+    "Download publicly accessible PDFs/images",
+    "Run <code>exiftool</code> to check for author names, internal software, or GPS data"
+  ]},
+  { title: "8. User Enumeration", items: [
+    "Test login forms: compare response messages for 'valid' vs 'invalid' users",
+    "Test password reset forms: check if it reveals if an email is registered"
+  ]},
+  { title: "9. API Information Leakage", items: [
+    "Inspect API JSON responses for hidden fields like <code>role</code>, <code>password_hash</code>, or <code>is_admin</code>",
+    "Check GraphQL endpoints for overly permissive introspection queries"
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Backup & Source Files", code: "index.php.bak\nlogin.php~\nlogin.phps\nindex.php.old\n.index.php.swp" },
+  { name: "2. Config & VCS Exposure", code: "/.git/config\n/.env\n/config.php.bak\n/backup.zip\n/backup.sql" },
+  { name: "3. Error Triggering Inputs", code: "'\n\"\n{{7*7}}\n../../../../etc/passwd" },
+  { name: "4. Directory Listing", code: "/uploads/\n/images/\n/backup/\n/assets/" },
+  { name: "5. HTML Comments Recon", code: "&lt;!-- TODO: remove /admin_secret --&gt;\n&lt;!-- debug=true --&gt;\n&lt;!-- User: admin@internal.com --&gt;" },
+  { name: "6. API Hidden Fields", code: "GET /api/users/1\nResponse: {\"id\":1, \"name\":\"John\", \"role\":\"admin\", \"password_hash\":\"$2y$10$...\"}" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"Perfect. You actually understand this.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['🎉','✅','🔥','💜'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('id_checklist_v2')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('id_checklist_v2', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${item.code}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

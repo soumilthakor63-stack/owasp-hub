@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>A09 Logging Failures — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#121417; --panel:#1c1f24; --line:#2d323b;
+  --text:#d1d5db; --dim:#6b7280; --accent:#a3e635; --bad:#fb7185;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,0.3);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:8px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#16191e;border:1px solid var(--line);border-left:3px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-left-color:var(--accent);background:#1f2329;color:#fff;}
+.opt.correct{background:#1a2417;border-color:var(--accent);border-left-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#241317;border-color:var(--bad);border-left-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#121417;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.btn:hover{background:#bbe85a;}
+.btn.alt:hover{background:#1f2329;}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#16191e;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#d1d5db;margin:8px 0 4px;}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;font-weight:bold;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#16191e;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // A09 Logging Failures</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+const Q=[
+["What was A09 previously called in the OWASP Top 10 (2017 edition)?",["Insufficient Logging & Monitoring vulnerability locally securely","Broken Authentication vulnerability globally and entirely safely","Security Misconfiguration vulnerability directly and fully securely","Sensitive Data Exposure vulnerability entirely and safely locally"],0,
+"It was renamed and expanded to explicitly include alerting and response failures, not just missing logs."],
+["Which of the following is the BEST metric to measure how quickly an organization identifies a breach?",["MTTD measures the detection speed of a security breach safely","MTTR measures the response speed of a security breach safely","RPO measures the recovery point of a security breach safely","SLA measures the service level of a security breach safely"],0,
+"Mean Time to Detect (MTTD) measures detection speed; MTTR measures response/recovery speed."],
+["According to historical Verizon DBIR trends often cited for A09, breaches are typically discovered:",["Weeks to months later, often by an external third party securely","Within minutes by automated systems and internal SOC locally","Within hours by the internal security operations center globally","Immediately by the affected user reporting the incident directly"],0,
+"This stat is the classic motivating example for why logging and monitoring failures matter."],
+["Which event should ALWAYS be logged for security purposes?",["Both successful and failed login attempts for accountability safely","Only failed login attempts to save database storage space entirely","Only successful login attempts to verify user access securely now","Neither, to save storage and prevent information disclosure locally"],0,
+"Failed logins show attack attempts, while successful ones establish accountability and reveal account takeover."],
+["What is 'alert fatigue'?",["Responders becoming desensitized to alerts due to false positives","A server crash caused by too many alerts being generated locally","A SIEM feature that automatically closes low priority tickets safely","An attack that floods the logging server with useless entries entirely"],0,
+"Constant low-signal noise trains analysts to ignore alerts, increasing the chance a real incident is missed."],
+["Which practice BEST mitigates alert fatigue?",["Risk-weighted, tiered severity alerting with correlation rules","Logging every possible event at maximum verbosity continuously","Disabling alerting entirely to focus on manual log review safely","Only alerting on successful logins to reduce the total volume now"],0,
+"Correlating weak signals into fewer, higher-confidence alerts reduces noise while preserving detection."],
+["Why is storing logs ONLY on the local application server considered a failure condition under A09?",["An attacker who compromises the server can delete the evidence","Local storage is always significantly slower than remote storage","Local logs cannot be timestamped accurately across time zones","It violates GDPR automatically without explicit user consent globally"],0,
+"This is the core log tampering risk; centralization protects log integrity even if the source is compromised."],
+["Which architecture pattern helps prevent log tampering after a breach?",["Real-time forwarding to a centralized, append-only log store","Storing logs only in application memory to prevent disk access","Weekly manual log backups to an external hard drive securely","Encrypting logs with the same key as the application database"],0,
+"Near-real-time shipping to a separate, write-once store means local deletion doesn't erase the record."],
+["What does 'WORM storage' stand for in the context of log integrity?",["Write Once Read Many storage prevents modification of logs","Write Only Remote Memory storage for secure transmission now","Warning Output Response Mechanism for alerting analysts safely","Weighted Object Risk Model for calculating severity scores entirely"],0,
+"WORM storage prevents modification or deletion of logs once written, supporting non-repudiation."],
+["Which of the following should NEVER be stored in plaintext logs?",["Passwords, session tokens, or PII to prevent data exposure","User ID, event timestamp, and source IP address for context","Event type, success or failure status, and user agent string","Server hostname, application version, and correlation ID safely"],0,
+"Logging sensitive data creates a new vulnerability (secondary data exposure risk) even while solving visibility."],
+["A log entry says 'Error occurred' with no user, timestamp, or context. This is an example of:",["A useless or insufficient log entry lacking actionable context","Proper logging that minimizes storage space and overhead safely","Log tampering by an attacker trying to hide their tracks now","Alert fatigue caused by too many detailed error messages entirely"],0,
+"Logs must have enough context (who, what, when, where, outcome) to be actionable during investigation."],
+["Which tool/system is typically used to aggregate, correlate, and alert on logs from many sources?",["A SIEM system centralizes logs and applies correlation logic","A CDN system caches logs and applies distribution logic safely","A WAF system inspects logs and applies filtering rules locally","A DNS resolver system routes logs and applies naming entirely"],0,
+"A Security Information and Event Management (SIEM) system centralizes logs and applies alerting logic."],
+["Which of these is NOT one of the '5 W's' typically expected in a good security log entry?",["Why (the attacker's motive) is not derivable from log data","Who (the user or session ID) is performing the action safely","What (the event type or action) is being attempted locally","When (the UTC timestamp) the event occurred globally now"],0,
+"Motive isn't derivable from logs; the standard fields are who, what, when, where, and outcome."],
+["What is a key reason to use UTC (not local time) for log timestamps?",["It avoids ambiguity when correlating logs across time zones","UTC is required by all modern programming languages securely","UTC logs take up significantly less storage space locally now","Local time cannot be logged programmatically by the server"],0,
+"Consistent timezone handling is essential for accurate event correlation during investigations."],
+["Which scenario is the CLEAREST example of an A09 failure?",["A company learns of a 6-month breach via customer reports","An application encrypts data at rest using AES-256 securely","A breach is detected internally within 5 minutes via alerts","A developer uses parameterized queries to prevent SQLi now"],0,
+"External discovery after a long dwell time is the textbook A09 scenario."],
+["What role does penetration testing / DAST play in relation to A09?",["It verifies that attacks actually generate detectable events","It replaces the need for logging and monitoring entirely safely","It is completely unrelated to logging and monitoring systems","It only tests network firewalls and routing configurations now"],0,
+"Simulated attacks validate whether the detection pipeline actually sees malicious activity, not just logs."],
+["Which of the following access-control-related events SHOULD be logged per A09 guidance?",["Access control failures like unauthorized access attempts","Only page load times and client-side rendering metrics now","CSS rendering errors and minor UI visual bugs locally fully","Successful static asset loads like images and CSS files safely"],0,
+"Access control failures are high-value security signals and explicitly called out in A09 guidance."],
+["Why is 'logs only accessible locally, not integrated into a SIEM' listed as a failure condition?",["It prevents cross-system correlation and real-time alerting","Local logs are always corrupted and easily manipulated safely","SIEMs cannot read local files without custom plugins entirely","It is a performance issue that slows down the application now"],0,
+"Without centralization, an attacker's activity across multiple systems can't be correlated into one pattern."],
+["What is the primary difference between MTTD and MTTR?",["MTTD measures time to detect; MTTR measures time to respond","MTTD measures financial cost; MTTR measures time to recover","They measure the exact same metric in different contexts now","MTTD applies to network; MTTR applies to application attacks"],0,
+"Detection and response are distinct phases with distinct metrics; both should be minimized."],
+["Which mitigation directly addresses BOTH alert fatigue AND slow detection?",["Correlation-based alerting with continuous tuning and feedback","Turning off all non-critical logging to reduce system overhead","Logging everything with no prioritization or filtering rules now","Manual daily log review by a single security analyst locally"],0,
+"Correlation reduces noise (fixing fatigue) while surfacing real multi-signal incidents faster (improving MTTD)."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Log Generation Verification", items: [
+    "Trigger failed logins, access control failures, and input validation errors.",
+    "Verify if the application generates a log entry for the security event.",
+    "Check if logs capture the '5 W's': Who, What, When, Where, and Outcome."
+  ]},
+  { title: "2. Sensitive Data Exposure in Logs", items: [
+    "Inspect log entries for plaintext passwords, session tokens, or PII.",
+    "Ensure error traces in logs do not dump sensitive request payloads."
+  ]},
+  { title: "3. Log Tampering & Storage", items: [
+    "Check if logs are stored locally on the same server (easily deleted by attacker).",
+    "Look for real-time forwarding to a centralized, append-only (WORM) log store.",
+    "Verify if logs are synchronized to a remote SIEM or external storage."
+  ]},
+  { title: "4. Alerting & Monitoring", items: [
+    "Determine if alerts trigger on brute-force or multiple access control failures.",
+    "Assess if there is a SIEM in place to correlate logs across multiple systems.",
+    "Check for alert fatigue: are all alerts low-priority or uncorrelated?"
+  ]},
+  { title: "5. Response Metrics & DAST", items: [
+    "Evaluate if the organization relies on internal detection (MTTD) or external reports.",
+    "Use DAST/penetration testing to verify if simulated attacks generate detectable alerts."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Brute Force (Log Trigger)", code: "Send 50 failed login attempts rapidly.\n// Check if alert fires or if it's silently ignored" },
+  { name: "2. Access Control Failure", code: "GET /admin/dashboard HTTP/1.1\n// User: standard user\n// Should log 403/401 Unauthorized" },
+  { name: "3. Log Injection (CRLF)", code: "POST /login\nusername=admin%0aERROR:%20Database%20compromised\n// Checks if logs can be forged" },
+  { name: "4. Sensitive Data Check", code: "POST /api/login\n{\"user\":\"admin\",\"password\":\"12345\"}\n// Verify '12345' is NOT written to access logs" },
+  { name: "5. Path Traversal (Log Check)", code: "GET /download?file=../../../../etc/passwd\n// Should trigger high-severity alert in SIEM" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"MONITORING BYPASSED. Blind exploitation achieved.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em = ['📊','🚨','🕵️','⏱️','✅'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('a09_graphite_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('a09_graphite_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Prevent live HTML execution
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>XSS Master — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#0a0c10; --panel:#11151c; --line:#1e2530;
+  --text:#d1d9e6; --dim:#7b8aa5; --accent:#ff6b00; --bad:#ff4d4d;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;text-shadow:0 0 8px rgba(255,107,0,0.3);}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#0e1218;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#1a1208;box-shadow:0 0 8px rgba(255,107,0,0.2);}
+.opt.correct{background:#2a1a00;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#2a0a0a;border-color:var(--bad);color:var(--bad);text-shadow:0 0 5px var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#0a0c10;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(255,107,0,0.3);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;text-shadow:0 0 10px var(--accent);}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;text-shadow:0 0 5px rgba(255,107,0,0.5);}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#0e1218;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#ffeede;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#0e1218;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // XSS Exploitation</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+// HTML tags inside strings are broken up (e.g., "<scr"+"ipt>") to prevent the browser's HTML parser from executing them as real code.
+const Q=[
+["What are the three main types of XSS?",["The Stored, Reflected, and DOM-based types","The HTML, CSS, and JavaScript-based types","The Client, Server, and Browser-based types","The GET, POST, and COOKIE-based injection types"],0,
+"The three main types are Stored (persisted in DB), Reflected (via URL), and DOM-based (client-side only)."],
+["In DOM XSS, where does the vulnerability exist?",["Within the client-side JavaScript securely","Within the backend database server locally","Within the server-side application code directly","Within the web server configuration file fully"],0,
+"DOM XSS occurs entirely on the client side when JavaScript processes attacker-controlled data unsafely."],
+["Which of these is a common DOM XSS source?",["The location.hash property of the window","The document.cookie property of the window","The SQL query execution on the database","The HTTP status code from the server"],0,
+"location.hash (the # fragment in a URL) is fully controllable by the attacker and often passed to sinks."],
+["Which function became the vulnerable sink in the jQuery hashchange lab?",["The jQuery selector function $(location.hash)","The JavaScript eval() function globally","The element.innerText property directly","The JSON.parse() method locally"],0,
+"Passing user-controlled input directly into the jQuery selector $() acts as a sink that can execute HTML."],
+["Why was location.hash useful in the first DOM XSS lab?",["It can be easily controlled by the attacker via the URL","It automatically reloads the entire page safely","It automatically executes SQL queries instantly","It creates session cookies for the user silently"],0,
+"An attacker can craft a malicious URL with a specific # fragment that the victim's browser will execute."],
+["What event fires when the URL fragment (#...) changes?",["The hashchange event triggers automatically","The onclick event triggers automatically","The onload event triggers automatically","The onsubmit event triggers automatically"],0,
+"The hashchange event detects when the fragment identifier of the URL has been modified."],
+["Why did the iframe solution work better than window.open()?",["iframes avoid popup blocking in automated browsers easily","iframes render significantly faster than popups locally","iframes encrypt the transmitted data securely fully","iframes completely bypass the Same-Origin Policy entirely"],0,
+"Headless browsers and automated tests often block popups, but iframes load silently without prompts."],
+["Which sink treats attacker input as real HTML?",["The element.innerHTML property directly","The element.textContent property directly","The element.innerText property directly","The element.value property directly"],0,
+"innerHTML parses the provided string as HTML, allowing tags like <scr"+"ipt> or <im"+"g> to be injected."],
+["Why did this payload work: <im"+"g src=x onerror=alert(1)>?",["The image fails to load, triggering the onerror event","The image loads successfully and executes payload","The browser ignores the broken image tag completely","The browser creates session cookies for the user"],0,
+"Because 'x' is an invalid image source, the browser throws an error, executing the JavaScript in onerror."],
+["Which source was used in the innerHTML search lab?",["The location.search property of the window","The location.hash property of the window","The location.pathname property of the window","The document.cookie property of the window"],0,
+"location.search contains the URL query string (e.g., ?search=test), which was injected into innerHTML."],
+["In the feedback page lab, user input was placed into which HTML attribute?",["The href attribute of an anchor tag","The src attribute of an image tag","The value attribute of an input tag","The class attribute of a div tag"],0,
+"The application took user input and dynamically inserted it directly into the href attribute of a link."],
+["Why didn't this payload work: <scr"+"ipt>alert(1)</scr"+"ipt>?",["It was inserted into the href attribute, not as HTML","Script tags are completely disabled by the browser","The browser blocked all JavaScript execution instantly","The user session cookies were missing entirely"],0,
+"When inside an href attribute, <scr"+"ipt> is treated as plain text, not an executable HTML tag."],
+["Which payload solved the href attribute lab?",["The payload javascript:alert(document.cookie)","The payload <im"+"g src=x onerror=alert(1)>","The payload <scr"+"ipt>alert(1)</scr"+"ipt>","The payload alert(1) directly"],0,
+"When injected into href, using the javascript: pseudo-protocol executes JS when the link is clicked."],
+["When does a javascript: URL execute?",["It executes when the victim clicks the link","It executes when the page initially loads","It executes during the DNS lookup phase","It executes during the user login process"],0,
+"The JavaScript within a javascript: URL only runs when the user interacts with the link (e.g., clicking it)."],
+["If < and > are HTML encoded, what is the best attack?",["Break out of the attribute and inject an event handler","Attempt to inject a standard <scr"+"ipt> tag","Attempt to inject a standard <im"+"g> tag","Attempt to use SQL Injection on the backend"],0,
+"If you can't create new tags, break out of the current attribute using a quote and add an onmouseover event."],
+["Which payload solved the 'attribute with encoded angle brackets' lab?",["The payload \" onmouseover=\"alert(1)","The payload <scr"+"ipt>alert(1)</scr"+"ipt>","The payload <im"+"g src=x onerror=alert(1)>","The payload javascript:alert(1) directly"],0,
+"By closing the attribute with a quote, you introduce a new event handler that executes when the user hovers."],
+["When quotes are HTML encoded inside href, what should you do?",["Make the href value dangerous using the javascript: protocol","Attempt to escape the quotes using backslashes safely","Attempt to inject a completely new HTML tag locally","Attempt to use SQL Injection on the backend server"],0,
+"If you cannot break out of the href attribute using quotes, use the javascript: protocol as the URL itself."],
+["In a JavaScript string injection lab, what is the goal?",["Break out of the JS string and execute custom code","Create a new image element within the DOM safely","Modify the CSS styling of the application locally","Change the session cookies of the user completely"],0,
+"You must close the string with a quote, inject your payload, and ensure the rest of the script doesn't break."],
+["Why is // often added at the end of a JavaScript string payload?",["To comment out remaining code and avoid syntax errors","To encrypt the transmitted data securely in transit","To force the browser to reload the page instantly","To bypass the Content Security Policy entirely"],0,
+"The // operator comments out the remaining original JavaScript, preventing syntax errors from breaking execution."],
+["What is the most important habit before choosing an XSS payload?",["Identify where your input lands in the context first","Memorize as many payloads as possible beforehand","Always use the <scr"+"ipt> tag without checking context","Use the alert() function immediately always blindly"],0,
+"Understanding the context (HTML, attribute, JS string) dictates which payload structure will successfully execute."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Context Analysis", items: [
+    "Inject canaries (e.g., <code>123abc</code>) to identify exactly where input lands in the HTML.",
+    "Determine if context is HTML body, inside an attribute, inside a JS string, or in a URL.",
+    "Check Page Source (<code>Ctrl+U</code>) to see if input is reflected unencoded or encoded."
+  ]},
+  { title: "2. HTML & Attribute Injection", items: [
+    "If in HTML body, test standard tags: <code>&lt;img src=x onerror=alert(1)&gt;</code>.",
+    "If inside an attribute, break out with quotes: <code>\" onmouseover=\"alert(1)</code>.",
+    "If angle brackets are encoded, focus purely on attribute breakout payloads."
+  ]},
+  { title: "3. JavaScript & DOM Context", items: [
+    "If inside a JS string, break out and execute: <code>';alert(1);//</code>.",
+    "Trace DOM sources (e.g., <code>location.hash</code>) to sinks (e.g., <code>innerHTML</code>, <code>eval()</code>).",
+    "Test jQuery selectors: <code>$(location.hash)</code> for potential DOM-based XSS."
+  ]},
+  { title: "4. URL & href Attacks", items: [
+    "If input lands in <code>href</code>, use the pseudo-protocol: <code>javascript:alert(document.cookie)</code>.",
+    "Verify execution requires user interaction (clicking the link) for <code>javascript:</code> URLs.",
+    "Test if the application sanitizes quotes but allows the <code>javascript:</code> keyword."
+  ]},
+  { title: "5. Exploitation & Verification", items: [
+    "Use iframes for automated verification to avoid popup blocker issues: <code>&lt;iframe src=\"...\"&gt;</code>.",
+    "Escalate from <code>alert(1)</code> to <code>alert(document.cookie)</code> to prove session theft.",
+    "Check for CSP (Content-Security-Policy) headers that might block inline script execution."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. HTML Body Context", code: "<im"+"g src=x onerror=alert(1)>\n<scr"+"ipt>alert(1)</scr"+"ipt>" },
+  { name: "2. Attribute Context", code: "\" onmouseover=\"alert(1)\n' onfocus='alert(1)" },
+  { name: "3. href Context", code: "javascript:alert(document.cookie)" },
+  { name: "4. JavaScript String Context", code: "';alert(1);//\n\";alert(1);//" },
+  { name: "5. DOM/jQuery Sink", code: "#<im"+"g src=x onerror=alert(1)>" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"SESSION HIJACKED. XSS execution confirmed.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['🕷️','💻','🍪','⚠️','🧩'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('xss_cyber_v2')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('xss_cyber_v2', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Prevent live HTML execution
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

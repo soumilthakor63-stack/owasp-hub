@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>JWT Vulnerabilities — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#050810; --panel:#0a121e; --line:#1a2b3d;
+  --text:#a7c4d6; --dim:#4f6d85; --accent:#00d4ff; --bad:#ff0055;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;text-shadow:0 0 8px rgba(0,212,255,0.3);}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#080f18;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#0f1c28;box-shadow:0 0 8px rgba(0,212,255,0.2);}
+.opt.correct{background:#0a2230;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#2e0a1a;border-color:var(--bad);color:var(--bad);text-shadow:0 0 5px var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#050810;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(0,212,255,0.3);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;text-shadow:0 0 10px var(--accent);}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;text-shadow:0 0 5px rgba(0,212,255,0.5);}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#080f18;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#e6f6ff;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#080f18;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // JWT Exploitation</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+// Questions formulated for exam-level difficulty: All options are nearly identical in length to prevent guessing.
+const Q=[
+["Why was JWT introduced?",["To allow stateless authentication easily","To encrypt passwords during transit","To replace HTTPS protocol entirely","To compress HTTP requests securely"],0,
+"JWT allows systems to be stateless because the token itself carries the user's identity, eliminating server-side session lookups."],
+["In traditional session authentication, where is the user's session stored?",["On the server backend memory","In the browser local storage","On the DNS resolver server","Inside the reverse proxy cache"],1,
+"Traditional authentication relies on server-side storage (like memory or a database) to track active user sessions."],
+["JWT authentication is called 'stateless' because:",["The token itself carries the user's identity","The browser stores the password safely","The server stores every active session","Cross-site cookies are disabled entirely"],0,
+"The server doesn't need to remember the session state; it just validates the JWT's signature and reads the identity directly from it."],
+["A JWT consists of how many parts?",["3 parts separated by dots","2 parts separated by dots","4 parts separated by dots","5 parts separated by dots"],0,
+"A JWT is structured as Header.Payload.Signature, making three distinct Base64URL encoded parts."],
+["What are the three parts of a JWT?",["Header, Payload, Signature","Cookie, Session, Token","User, Password, Hash","Header, Cookie, Body"],0,
+"The Header defines the algorithm, the Payload contains the claims (like user ID), and the Signature secures the token."],
+["Which parts of a JWT can anyone decode?",["Header and Payload exclusively","Signature only exclusively","Payload only exclusively","Header only exclusively"],0,
+"Because they are only Base64URL encoded (not encrypted), anyone can decode the Header and Payload to read the JSON contents."],
+["Why can anyone decode the Header and Payload?",["They are Base64URL encoded, not encrypted.","They are heavily encrypted by default.","They are compressed using Gzip.","They are hashed using SHA-256."],0,
+"Base64URL is an encoding mechanism meant for data transport, not obfuscation or security. It is instantly reversible."],
+["Which JWT part protects against tampering?",["The cryptographic Signature","The encoded Header section","The Base64URL Payload","The HTTP secure Cookie"],0,
+"The Signature is calculated using the Header, Payload, and a secret key. Changing the Payload invalidates the Signature."],
+["If you modify the Payload without creating a new valid signature, what happens?",["The signature becomes invalid instantly.","The token still works perfectly.","The server ignores the payload changes.","The payload becomes encrypted securely."],0,
+"If the Payload changes but the Signature isn't updated with the correct secret key, the server will reject the token as tampered."],
+["Which field commonly identifies the logged-in user?",["The sub (subject) claim","The exp (expiration) claim","The iss (issuer) claim","The kid (key ID) claim"],0,
+"The 'sub' (subject) claim holds the unique identifier for the user, such as a database ID or username."],
+["What does the exp claim represent?",["The expiration time of token","The encryption algorithm type","The username of the subject","The public key location URL"],0,
+"The 'exp' claim specifies the exact timestamp after which the JWT is considered invalid and should be rejected."],
+["What does the iss claim represent?",["The token issuer entity","The active session ID","The user role level","The signature method type"],0,
+"The 'iss' (issuer) claim identifies the principal that issued the JWT, ensuring it came from a trusted source."],
+["Which encoding is used for the Header and Payload?",["Base64URL encoding standard","Base32 encoding standard","Hexadecimal encoding standard","MD5 hashing algorithm"],0,
+"JWT uses Base64URL (which removes + and / characters) to ensure the token is safe to use in URLs and HTTP headers."],
+["During the alg:none attack, what change is made to the Header?",["The algorithm is changed to none","The algorithm is changed to HS256","The algorithm is changed to RS256","The key ID is changed to none"],1,
+"The attacker changes the 'alg' header to 'none', tricking the server into thinking no signature is required."],
+["During the alg:none attack, what is the Signature part?",["Empty, but the trailing dot remains","A valid RSA signature value","Random text characters string","Base64 encoded secret key"],2,
+"The payload is sent without a signature, but the structure still requires the two dots (Header.Payload.) even if the signature is blank."],
+["Which Payload value is commonly changed in PortSwigger JWT labs to become the administrator?",["The sub (subject) claim","The iss (issuer) claim","The exp (expiration) claim","The kid (key ID) claim"],0,
+"By changing the 'sub' claim to 'administrator' and forging the signature (or using alg:none), the attacker gains admin access."],
+["Which Burp extension allows JWTs to be decoded and edited visually?",["The JWT Editor extension","The Logger++ extension","The Autorize extension","The Active Scan++ extension"],2,
+"The JWT Editor extension provides a visual interface inside Burp to decode, modify, and re-sign JSON Web Tokens."],
+["What does the JWT Editor automatically do after you edit the Header or Payload?",["Re-encodes the modified JSON into Base64URL","Encrypts the JWT payload securely","Deletes the signature entirely","Changes the target server address"],2,
+"It automatically handles the Base64URL encoding/decoding so you can focus on editing the raw JSON claims directly."],
+["After forging an administrator JWT in the PortSwigger lab, which endpoint should you access?",["The /admin directory route","The /login directory route","The /register directory route","The /profile directory route"],0,
+"Once the forged token is injected into the session cookie, accessing the /admin endpoint confirms the privilege escalation."],
+["Which statement is TRUE regarding JSON Web Tokens?",["Header and Payload are readable, while Signature protects integrity.","JWTs are always fully encrypted by default.","The Payload is entirely secret and unreadable.","Anyone can generate a valid signature remotely."],0,
+"JWTs are not encrypted. They are encoded for transport, and their security relies entirely on the cryptographic Signature."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Token Analysis", items: [
+    "Intercept the JWT in the Authorization header or session cookie.",
+    "Decode the Header and Payload using Base64URL to identify algorithms and claims.",
+    "Check for sensitive data exposure inside the Payload (PII, internal IDs)."
+  ]},
+  { title: "2. Algorithm Confusion & Bypass", items: [
+    "Test the <code>alg:none</code> attack by removing the signature and changing the header.",
+    "Test RS256 to HS256 confusion (using the public key as the HMAC secret).",
+    "Check if the server accepts unsigned or weakly signed tokens."
+  ]},
+  { title: "3. Claim Manipulation", items: [
+    "Modify the <code>sub</code> claim to <code>administrator</code> to attempt privilege escalation.",
+    "Remove or extend the <code>exp</code> (expiration) claim to test for infinite session validity.",
+    "Change the <code>kid</code> header to test for path traversal or SQL injection."
+  ]},
+  { title: "4. Secret Cracking", items: [
+    "Capture the JWT and export it to a file for offline cracking.",
+    "Run <code>hashcat -m 16500 jwt.txt rockyou.txt</code> to brute force weak HMAC secrets.",
+    "If secret is found, forge new tokens with valid signatures."
+  ]},
+  { title: "5. Tooling & Exploitation", items: [
+    "Install the 'JWT Editor' extension in Burp Suite for visual modification.",
+    "Use the Burp extension to sign new tokens if the secret key is known.",
+    "Inject the forged JWT into the request and access restricted endpoints (e.g., <code>/admin</code>)."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. alg:none Attack (Header)", code: "{\n  \"alg\": \"none\",\n  \"typ\": \"JWT\"\n}" },
+  { name: "2. alg:none Attack (Full Token)", code: "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbmlzdHJhdG9yIn0." },
+  { name: "3. Privilege Escalation (Payload)", code: "{\n  \"sub\": \"administrator\",\n  \"exp\": 9999999999\n}" },
+  { name: "4. kid Path Traversal (Header)", code: "{\n  \"alg\": \"HS256\",\n  \"kid\": \"../../../../../../../dev/null\"\n}" },
+  { name: "5. JWT Cracking Command (Hashcat)", code: "hashcat -a 0 -m 16500 captured_jwt.txt /usr/share/wordlists/rockyou.txt" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"ACCESS GRANTED. Admin privileges achieved.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===20) confetti();
+}
+
+function confetti(){
+  const em=['🔑','🔓','💻','🧊','🚀'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('jwt_cyber_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('jwt_cyber_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${item.code}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>

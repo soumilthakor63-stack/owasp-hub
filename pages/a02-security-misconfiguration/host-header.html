@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Host Header Attacks — Quiz & Recon Kit</title>
+<style>
+:root{
+  --bg:#0b0f0e; --panel:#11181a; --line:#1e2a2a;
+  --text:#d7e6e0; --dim:#7b9a91; --accent:#5ff0a0; --bad:#ff6b6b;
+  --mono:'Consolas','SF Mono','JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#0e1516;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);}
+.opt.correct{background:#123322;border-color:var(--accent);color:var(--accent);}
+.opt.wrong{background:#331515;border-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;}
+.btn{background:var(--accent);color:#04140b;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#0e1516;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#9fe8c0;margin:8px 0 4px;}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#0e1516;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // Host Header Attacks</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Quiz</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Quiz</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+
+    <div class="pname">1. Port trick</div>
+<pre>Host: vulnerable-website.com:bad-stuff-here</pre>
+
+    <div class="pname">2. Subdomain / suffix trick</div>
+<pre>Host: notvulnerable-website.com
+Host: hacked-subdomain.vulnerable-website.com</pre>
+
+    <div class="pname">3. Duplicate Host headers</div>
+<pre>GET /example HTTP/1.1
+Host: vulnerable-website.com
+Host: bad-stuff-here</pre>
+
+    <div class="pname">4. Absolute URL trick</div>
+<pre>GET https://vulnerable-website.com/ HTTP/1.1
+Host: bad-stuff-here</pre>
+
+    <div class="pname">5. Header line-wrapping</div>
+<pre>GET /example HTTP/1.1
+    Host: bad-stuff-here
+Host: vulnerable-website.com</pre>
+
+    <div class="pname">6. Host override headers</div>
+<pre>Host: vulnerable-website.com
+X-Forwarded-Host: bad-stuff-here
+X-Host: bad-stuff-here
+X-Forwarded-Server: bad-stuff-here
+X-HTTP-Host-Override: bad-stuff-here
+Forwarded: host=bad-stuff-here</pre>
+
+    <div class="pname">7. SSRF probe (Burp Collaborator)</div>
+<pre>Host: your-collaborator-id.oastify.com</pre>
+
+    <div class="pname">8. Password reset poisoning setup</div>
+<pre>POST /forgot-password HTTP/1.1
+Host: attacker-controlled.com
+&amp; body: email=victim@target.com</pre>
+  </div>
+</div>
+
+<script>
+const Q=[
+["What does the HTTP Host header specify?",["The domain name the client wants to reach","The IP address of the client making the request","The file type being requested by the browser","The encryption method used for the connection"],0,
+"The Host header tells the server which domain the client is trying to reach, since one server can host many domains."],
+["Why do multiple websites often share one IP address today?",["Cloud hosting and IPv4 address exhaustion","Browsers require multiple IPs per domain","DNS servers only support single-site records","HTTP/1.1 mandates shared IP addressing"],0,
+"IPv4 addresses are limited, so cloud platforms host many sites on shared IPs and use the Host header to separate them."],
+["In virtual hosting, how does a server know which site to serve?",["It reads the Host header to route the request","It checks the client's browser version","It reads the request body content","It uses the client's operating system"],0,
+"The Host header acts like an apartment number — it tells the shared server which specific site should handle the request."],
+["What makes the Host header a security risk?",["It is user-controllable but often trusted blindly","It is encrypted and cannot be inspected","It is generated randomly by the server","It only exists in HTTPS requests"],0,
+"Like any client-supplied input, it can be modified by an attacker — the risk comes from apps trusting it without validation."],
+["What is password reset poisoning based on?",["Injecting a fake host so reset links point to attacker's domain","Guessing the victim's password directly","Intercepting encrypted TLS traffic","Exploiting the CAPTCHA on login forms"],0,
+"If the reset link is built from the Host header, a spoofed Host sends the victim's reset token to the attacker's domain."],
+["Why does web cache poisoning via Host header matter?",["A single poisoned response can be served to many future visitors","It only affects the attacker's own browser session","It permanently deletes the cached website","It requires physical access to the server"],0,
+"A cache stores one response and replays it — poisoning it once turns a one-time payload into a stored attack for everyone."],
+["How can classic vulnerabilities like SQL injection relate to the Host header?",["The header value may be unsafely used in backend queries","SQL injection cannot occur through HTTP headers","The Host header is always sanitized by HTTP/1.1","SQLi only works through URL parameters, never headers"],0,
+"The Host header is just another input; if it reaches a database query unsanitized, it's injectable like any form field."],
+["How does Host header authentication bypass typically work?",["App wrongly trusts a specific Host value as proof of internal access","Attacker steals the admin's session cookie","Attacker brute-forces the login password","Attacker exploits a browser plugin vulnerability"],0,
+"Some apps assume 'if Host = internal.site.com, this must be an internal request' — an attacker can just set that header."],
+["What is virtual host brute-forcing used to discover?",["Hidden internal sites hosted on the same server","The server's physical location","The victim's saved browser passwords","The database engine version in use"],0,
+"Guessing hostnames via the Host header can reveal internal apps hosted on the same server but not publicly linked."],
+["What makes routing-based SSRF via Host header dangerous?",["It can trick a proxy into forwarding requests into the internal network","It only affects the attacker's own local machine","It slows down the target website temporarily","It changes the website's visual appearance"],0,
+"A misconfigured proxy that routes by Host can be tricked into forwarding requests to internal-only systems."],
+["What is exploited in a connection state attack?",["Servers that validate the Host header only on the first request of a connection","Servers that never accept HTTP/1.1 connections","Browsers that block all cookies by default","DNS servers that cache records too long"],0,
+"If validation only happens on request #1, a clean first request followed by a malicious second one skips the check."],
+["In the 'port trick' bypass, where is the payload hidden?",["After a colon, in the port section of the Host header","Inside the request body as JSON","Inside the User-Agent header","Inside the cookie value"],0,
+"Some validators only check the domain part and ignore whatever comes after the colon, so the payload hides there."],
+["What flawed logic does the subdomain/suffix trick exploit?",["Validation that only checks if the host 'ends with' an allowed domain","Validation that checks the client's IP range","Validation that checks the SSL certificate issuer","Validation that checks the browser's language header"],0,
+"A domain like notvulnerable-website.com 'ends with' the real domain string and can fool sloppy suffix checks."],
+["What is the idea behind sending duplicate Host headers?",["Front-end and back-end may trust different instances of the header","It doubles the server's processing speed","It bypasses the need for a TLS handshake","It forces the server to log out other users"],0,
+"If the front-end reads the first Host and the back-end reads the last (or vice versa), you can route safely but inject via the other."],
+["How does the absolute URL trick create ambiguity?",["The request line contains a full URL that may conflict with the Host header","It removes the need for a Host header entirely","It encrypts the Host header value","It automatically redirects to HTTPS"],0,
+"Putting a full URL in the request line gives two possible sources of truth for the host — systems may disagree on which wins."],
+["What does the header line-wrapping trick rely on?",["Some parsers treat an indented line as part of the previous header","Some browsers ignore all headers longer than 50 characters","Some servers reject any header written in lowercase","Some proxies remove all headers automatically"],0,
+"An indented line can be read as a continuation of the header above it by one system, and as a separate header by another."],
+["Which header is a classic example of a 'Host override' header?",["X-Forwarded-Host","Content-Type","Accept-Language","Cache-Control"],0,
+"X-Forwarded-Host is meant to carry the original Host through a proxy, but apps often trust it more than the real Host header."],
+["What is the simplest overall prevention for Host header attacks?",["Avoid using the Host header in server-side logic; use relative URLs","Disable HTTPS on the server","Block all incoming HTTP requests","Increase the server's RAM"],0,
+"If the app never relies on the Host header for logic or absolute URLs, there's nothing for an attacker to poison."],
+["How does Django's ALLOWED_HOSTS setting help prevent these attacks?",["It whitelists valid domains and rejects unrecognized Host values","It encrypts all incoming Host headers automatically","It blocks all requests from mobile devices","It disables the Host header entirely"],0,
+"ALLOWED_HOSTS explicitly whitelists acceptable domains, so any unrecognized Host value gets rejected outright."],
+["Why should internal apps not share a server with public-facing ones?",["Host header manipulation could expose internal apps via virtual hosting","It makes the website load slower for regular users","It increases the monthly hosting bill significantly","It prevents search engines from indexing the site"],0,
+"If both sites live on the same server, an attacker who guesses the internal hostname can reach it via the Host header alone."]
+];
+
+const CHECK=[
+"Intercept a normal request with a proxy (Burp Suite)",
+"Send an arbitrary/unrecognized Host header and observe the response",
+"Check for 'Invalid Host header' error vs normal load vs default fallback site",
+"Check if the Host value gets reflected in the response body or headers",
+"Test the port trick: Host: real-domain.com:payload",
+"Test the subdomain/suffix trick against the validation logic",
+"Test duplicate Host headers (front-end vs back-end precedence)",
+"Test the absolute-URL-in-request-line trick",
+"Test header line-wrapping (indented duplicate Host)",
+"Test override headers: X-Forwarded-Host, X-Host, X-Forwarded-Server, Forwarded",
+"Check the password reset flow for Host-based token poisoning",
+"Check if a reflected Host payload can end up in a cached response",
+"Try classic injection payloads (SQLi etc.) in the Host header",
+"Test auth bypass using internal-looking Host values (e.g. internal.company.com)",
+"Brute-force common internal subdomains (intranet, admin, dev, staging, vpn)",
+"Probe for SSRF using a Burp Collaborator domain in the Host header",
+"If SSRF confirmed, scan private IP ranges (10.0.0.0/8, 192.168.0.0/16) via Host",
+"Test connection-state bypass: benign request first, malicious one second, same connection",
+"Document affected endpoint, exact payload, and real-world impact",
+"Retest after the fix is deployed to confirm remediation"
+];
+
+let order=[],cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  document.getElementById('nextBtn').style.display='none';
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===20?"Perfect. You actually understand this.":
+    score>=15?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  confetti();
+}
+
+function confetti(){
+  const em=['🎉','✅','🔥'];
+  for(let i=0;i<24;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('hh_checklist')||'{}');
+  CHECK.forEach((txt,i)=>{
+    const row=document.createElement('div');
+    row.className='chk'+(saved[i]?' done':'');
+    row.innerHTML=`<input type="checkbox" id="c${i}" ${saved[i]?'checked':''}><label for="c${i}">${txt}</label>`;
+    row.querySelector('input').onchange=e=>{
+      saved[i]=e.target.checked;
+      localStorage.setItem('hh_checklist',JSON.stringify(saved));
+      row.classList.toggle('done',e.target.checked);
+    };
+    c.appendChild(row);
+  });
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+</script>
+</body>
+</html>

