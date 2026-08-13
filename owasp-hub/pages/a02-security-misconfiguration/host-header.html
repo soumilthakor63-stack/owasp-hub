@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Host Header Attacks — Quiz, Concept & Recon Kit</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#08090d; --panel:#101216; --line:#1f2329;
+  --text:#c5cdd6; --dim:#5a6470; --accent:#d4ff00; --bad:#ff3860;
+  --mono:'Fira Code','JetBrains Mono','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#0c0e12;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#15201b;box-shadow:0 0 8px rgba(212,255,0,0.15);}
+.opt.correct{background:#1a2400;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#1f0a0f;border-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#08090d;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(212,255,0,0.2);}
+.btn:hover{background:#e6ff44;}
+.btn.alt:hover{background:#15201b;}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#0c0e12;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#f0ffba;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView,#conceptView{display:none;}
+
+/* Concept View Styles */
+.concept-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:7px;padding:18px;margin-bottom:16px;}
+.concept-card h3{margin-top:0;color:#fff;font-size:16px;text-shadow:0 0 5px rgba(212,255,0,0.3);}
+.concept-card p{font-size:14px;line-height:1.7;color:var(--text);}
+.concept-card b{color:var(--accent);}
+.concept-card ul{font-size:14px;line-height:1.7;color:var(--text);padding-left:20px;}
+.concept-card code{background:rgba(212,255,0,0.1);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:12.5px;}
+.section-divider{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin-top:30px;margin-bottom:15px;}
+
+.topbtns{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.explain{margin-top:12px;padding:12px 14px;background:#0c0e12;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+#nextBtn{display:none;margin-top:16px;}
+
+/* Anti-Cheat Persistent Banner */
+.cheat-banner {
+  background: rgba(255, 56, 96, 0.1); border: 1px solid var(--bad); color: var(--bad);
+  padding: 10px 14px; border-radius: 7px; margin-bottom: 18px; font-size: 12.5px; text-align: center; display: none;
+}
+
+/* Anti-Cheat Modal */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(8, 9, 13, 0.9); display: none; 
+  justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px);
+}
+.modal-overlay.show { display: flex; }
+.modal-content {
+  background: var(--panel); border: 1px solid var(--bad); padding: 30px; border-radius: 10px;
+  text-align: center; max-width: 400px; box-shadow: 0 0 30px rgba(255, 56, 96, 0.3);
+}
+.modal-icon { font-size: 40px; margin-bottom: 10px; }
+.modal-content h2 { color: var(--bad); margin: 0 0 10px; border: none; }
+.modal-desc { font-size: 13px; color: var(--dim); margin-bottom: 20px; }
+
+/* ================================================================ VICTORY ANIMATION ================================================================ */
+#vic-overlay{ position: fixed; inset: 0; z-index: 20000; display: none; font-family: 'Manrope', sans-serif; }
+#vic-overlay.show{ display: block; }
+#vic-stage{ position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: radial-gradient(ellipse 120% 80% at 50% 15%, #4a1f6e 0%, transparent 60%), linear-gradient(180deg, #150c2e 0%, #2a1656 55%, #150c2e 100%); }
+.vic-star{ position:absolute; width: 3px; height: 3px; background: #fff; border-radius: 50%; opacity: 0.15; animation: vicTwinkle 3.5s ease-in-out infinite; }
+@keyframes vicTwinkle{ 0%,100%{ opacity: 0.1; transform: scale(1); } 50%{ opacity: 0.9; transform: scale(1.6); } }
+#vic-glow{ position:absolute; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(255,201,92,0.45) 0%, rgba(255,201,92,0.12) 35%, transparent 70%); opacity: 0; transform: scale(0.3); animation: vicGlowPulse 2.4s ease-out forwards; animation-delay: 0.15s; pointer-events: none; }
+@keyframes vicGlowPulse{ 0%{ opacity: 0; transform: scale(0.2); } 35%{ opacity: 1; transform: scale(1.05); } 100%{ opacity: 0.55; transform: scale(1); } }
+#vic-overlay.tier-great #vic-glow{ width: 460px; height: 460px; background: radial-gradient(circle, rgba(0,212,255,0.28) 0%, rgba(0,212,255,0.08) 35%, transparent 70%); animation-name: vicGlowPulseSoft; }
+@keyframes vicGlowPulseSoft{ 0%{ opacity: 0; transform: scale(0.2); } 35%{ opacity: 0.6; transform: scale(1); } 100%{ opacity: 0.3; transform: scale(0.95); } }
+.vic-ring{ position:absolute; border: 2px solid rgba(255, 201, 92, 0.5); border-radius: 50%; width: 120px; height: 120px; opacity: 0; left:50%; top:38%; margin-left:-60px; margin-top:-60px; animation: vicRingOut 1.8s ease-out forwards; }
+.vic-ring2{ animation-delay: 0.25s; border-color: rgba(255,111,145,0.4); }
+.vic-ring3{ animation-delay: 0.45s; border-color: rgba(111,227,201,0.35); }
+@keyframes vicRingOut{ 0%{ opacity: 0.9; transform: scale(0.3); } 100%{ opacity: 0; transform: scale(5.5); } }
+#vic-overlay.tier-great .vic-ring{ border-color: rgba(0, 212, 255, 0.3); }
+#vic-overlay.tier-great .vic-ring2, #vic-overlay.tier-great .vic-ring3{ display: none; }
+#vic-content{ position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; }
+#vic-trophy-wrap{ opacity: 0; transform: translateY(60px) scale(0.4) rotate(-8deg); animation: vicTrophyRise 0.95s cubic-bezier(.2,1.4,.4,1) forwards; animation-delay: 0.35s; filter: drop-shadow(0 10px 30px rgba(255, 169, 46, 0.45)); }
+@keyframes vicTrophyRise{ 0%{ opacity: 0; transform: translateY(60px) scale(0.4) rotate(-8deg); } 60%{ opacity: 1; transform: translateY(-14px) scale(1.08) rotate(3deg); } 100%{ opacity: 1; transform: translateY(0) scale(1) rotate(0deg); } }
+#vic-trophy-svg{ width: 150px; height: 150px; animation: vicFloatBob 3.2s ease-in-out infinite; animation-delay: 1.3s; }
+@keyframes vicFloatBob{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-9px); } }
+#vic-overlay.tier-great #vic-trophy-wrap{ filter: drop-shadow(0 6px 16px rgba(0, 153, 204, 0.25)); }
+#vic-overlay.tier-great #vic-trophy-svg{ width: 120px; height: 120px; }
+#vic-headline{ margin: 26px 0 6px; font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: clamp(2.4rem, 8vw, 4.2rem); line-height: 1; background: linear-gradient(100deg, #ffc95c 0%, #fff2d0 25%, #ff6f91 55%, #ffc95c 80%); background-size: 250% auto; -webkit-background-clip: text; background-clip: text; color: transparent; opacity: 0; transform: translateY(18px); animation: vicTextIn 0.7s ease-out forwards, vicShine 3.5s linear infinite; animation-delay: 0.95s, 2.2s; letter-spacing: 0.5px; }
+@keyframes vicTextIn{ to{ opacity: 1; transform: translateY(0); } }
+@keyframes vicShine{ to{ background-position: -250% center; } }
+#vic-overlay.tier-great #vic-headline{ font-size: clamp(1.9rem, 6vw, 3.1rem); background: linear-gradient(100deg, #b3f5ff 0%, #00d4ff 50%, #b3f5ff 100%); background-size: 100% auto; animation: vicTextIn 0.7s ease-out forwards; }
+#vic-subline{ font-size: clamp(0.95rem, 2.6vw, 1.15rem); color: #d9c9ff; font-weight: 500; opacity: 0; animation: vicTextIn 0.7s ease-out forwards; animation-delay: 1.15s; }
+#vic-score-card{ margin-top: 30px; padding: 18px 42px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,201,92,0.35); backdrop-filter: blur(6px); opacity: 0; transform: translateY(16px) scale(0.94); animation: vicCardIn 0.6s ease-out forwards; animation-delay: 1.5s; }
+@keyframes vicCardIn{ to{ opacity: 1; transform: translateY(0) scale(1); } }
+#vic-score-num{ font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: clamp(2.1rem, 6vw, 2.8rem); color: #ffc95c; }
+#vic-score-label{ font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #b6a6e0; margin-top: 2px; }
+#vic-overlay.tier-great #vic-score-card{ border-color: rgba(0,212,255,0.18); background: rgba(255,255,255,0.04); }
+#vic-continue-btn{ margin-top: 34px; padding: 14px 38px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 1rem; color: #1a1030; background: linear-gradient(100deg, #ffc95c 0%, #ffe2a0 100%); border: none; border-radius: 999px; cursor: pointer; opacity: 0; transform: translateY(14px); animation: vicCardIn 0.6s ease-out forwards; animation-delay: 1.85s; box-shadow: 0 8px 24px rgba(255, 169, 46, 0.35); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+#vic-continue-btn:hover{ transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 30px rgba(255, 169, 46, 0.5); }
+#vic-continue-btn:active{ transform: translateY(0) scale(0.98); }
+.vic-confetti{ position: absolute; top: -20px; border-radius: 2px; opacity: 0.95; animation-name: vicFall; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes vicFall{ 0%{ transform: translateY(-10vh) translateX(0) rotate(0deg); } 100%{ transform: translateY(110vh) translateX(var(--drift, 40px)) rotate(var(--spin, 380deg)); opacity: 0.9; } }
+.vic-sparkle{ position: absolute; width: 10px; height: 10px; opacity: 0; animation: vicSparklePop 1.4s ease-out forwards; }
+.vic-sparkle svg{ width: 100%; height: 100%; }
+@keyframes vicSparklePop{ 0%{ opacity: 0; transform: scale(0) rotate(0deg); } 35%{ opacity: 1; transform: scale(1.3) rotate(45deg); } 100%{ opacity: 0; transform: scale(0.4) rotate(120deg); } }
+#vic-secret-toast{ position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(16, 18, 22, 0.95); border: 1px solid var(--accent); color: var(--accent); padding: 10px 18px; border-radius: 8px; font-family: var(--mono); font-size: 12.5px; z-index: 30000; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+#vic-secret-toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (prefers-reduced-motion: reduce){ #vic-overlay *{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
+</style>
+</head>
+<body>
+
+<!-- Anti-Cheat Modal -->
+<div id="cheatModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-icon">⚠️</div>
+    <h2>Proctoring Alert</h2>
+    <p>Tab switching or window focus loss detected.</p>
+    <p class="modal-desc">This action has been logged. A warning will remain on your screen. Please remain on the quiz tab to maintain exam integrity.</p>
+    <button class="btn" onclick="closeCheatWarning()" style="background:var(--bad); color:#fff;">Acknowledge</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tag">WVAPT // Host Header Attacks</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <div class="topbtns">
+      <button class="btn alt" onclick="showConcept()">📖 Read Concept & Theory</button>
+      <button class="btn alt" onclick="showKit()">🛡️ Bug Bounty Checklist</button>
+    </div>
+    
+    <div id="cheatBanner" class="cheat-banner">
+      ⚠️ Proctoring Warning: Tab switching detected. Cheating is suspected on this attempt.
+    </div>
+
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Quiz</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="conceptView">
+    <button class="btn alt" onclick="showQuiz()" style="margin-bottom: 20px;">← Back to Quiz</button>
+    <h2>Concept & Theory: HTTP Host Header Attacks</h2>
+    
+    <div class="concept-card">
+      <h3>What it is:</h3>
+      <p>The Host header in an HTTP request tells the server which website the client wants to reach. This exists because many websites often live on the same physical server/IP (virtual hosting), so the server needs a way to know "route this request to Site A, not Site B."</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>Why it's a vulnerability:</h3>
+      <p>The Host header is just a plain text value sent by the client — meaning an attacker can set it to anything. The vulnerability isn't the header itself, it's that many applications trust this value blindly and use it for things beyond simple routing: generating links, making trust decisions, building queries, or deciding where to forward a request internally. Whenever attacker-controlled input gets used as if it were trusted, sensitive logic, that's where exploitation begins.</p>
+    </div>
+
+    <div class="section-divider">The 5 Variants</div>
+
+    <div class="concept-card">
+      <h3>1. Basic Password Reset Poisoning</h3>
+      <p><b>How it works:</b> Some apps build the password reset link dynamically using the Host header, like: <code>https://[HOST]/reset-password?token=abc123</code></p>
+      <p>An attacker requests a password reset for a victim's email, but sends the request with a spoofed Host header pointing to a domain they control. The app generates the reset email using that spoofed host, so the victim receives a link like <code>https://attacker.com/reset-password?token=abc123</code>. If the victim clicks it (or the token gets logged/leaked via the attacker's server), the attacker captures the token and resets the victim's password — full account takeover.</p>
+      <pre>POST /forgot-password HTTP/1.1
+Host: attacker-controlled.com
+
+email=victim@target.com</pre>
+    </div>
+
+    <div class="concept-card">
+      <h3>2. Web Cache Poisoning via Host Header</h3>
+      <p><b>How it works:</b> If the Host header value is reflected somewhere in the page response (e.g., in a canonical link, a script src, or a redirect URL) and that response gets cached by a CDN or reverse proxy, an attacker can poison the cached copy. They send one request with a malicious Host value; the poisoned response gets stored under a cache key that doesn't account for the Host difference. Every subsequent visitor requesting that same cached page then receives the attacker's injected content — turning a single request into a persistent, mass-impact attack.</p>
+      <pre>GET / HTTP/1.1
+Host: attacker.com
+
+(If the response reflects this Host anywhere and gets cached, all future visitors get the poisoned version.)</pre>
+    </div>
+
+    <div class="concept-card">
+      <h3>3. Routing-Based SSRF via Host Header</h3>
+      <p><b>How it works:</b> In modern cloud architectures, a front-end load balancer or reverse proxy often reads the Host header to decide which internal backend server to forward the request to. If this routing logic is misconfigured or overly trusting, an attacker can set the Host header to an internal hostname or IP address (e.g., an internal admin panel, a metadata endpoint, or another service on the private network). The proxy then forwards — or "routes" — the attacker's request into the internal network, effectively turning the public-facing server into a pivot point (classic Server-Side Request Forgery).</p>
+      <pre>GET /admin HTTP/1.1
+Host: internal-service.local
+
+(Or a Burp Collaborator domain, to confirm the request actually reached out: Host: your-id.oastify.com)</pre>
+    </div>
+
+    <div class="concept-card">
+      <h3>4. Host Header Authentication Bypass</h3>
+      <p><b>How it works:</b> Some applications implement access control logic like: "if the request's Host is <code>internal.company.com</code>, treat it as an internal/trusted request and skip authentication." This is a flawed assumption, since the attacker fully controls the Host header value from any external location. By simply setting the Host to the expected "internal" value, an attacker can trick the app into granting access to admin panels or restricted functionality without ever needing valid credentials.</p>
+      <pre>GET /admin/dashboard HTTP/1.1
+Host: internal.company.com</pre>
+    </div>
+
+    <div class="concept-card">
+      <h3>5. Ambiguous Request Handling (Host Override Headers)</h3>
+      <p><b>How it works:</b> Even when the real Host header is properly validated, many applications sit behind proxies and also honor secondary headers meant to carry the "original" host through the proxy chain — like <code>X-Forwarded-Host</code>. These override headers are frequently not validated the same way the main Host header is. An attacker sends a valid, whitelisted Host, but adds one of these secondary headers with a malicious value — and if the app's logic (password reset link, cache key, SSRF routing, etc.) reads the override header instead of/alongside the real one, all the attacks above become possible again, bypassing whatever protection was put on the main Host header.</p>
+      <pre>GET /reset-password HTTP/1.1
+Host: real-whitelisted-site.com
+X-Forwarded-Host: attacker.com
+
+(Other headers that sometimes get trusted the same way: X-Host, X-Forwarded-Server, X-HTTP-Host-Override, Forwarded: host=...)</pre>
+    </div>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Quiz</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<!-- ============ VICTORY ANIMATION OVERLAY ============ -->
+<div id="vic-overlay">
+  <div id="vic-stage">
+    <div id="vic-glow"></div>
+    <div class="vic-ring"></div>
+    <div class="vic-ring vic-ring2"></div>
+    <div class="vic-ring vic-ring3"></div>
+
+    <div id="vic-content">
+      <div id="vic-trophy-wrap">
+        <svg id="vic-trophy-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="vicCupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffe6a8"/><stop offset="45%" stop-color="#ffc95c"/><stop offset="100%" stop-color="#e8901c"/>
+            </linearGradient>
+            <linearGradient id="vicBaseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffd77a"/><stop offset="100%" stop-color="#d9800f"/>
+            </linearGradient>
+          </defs>
+          <path d="M60 55 C30 55 28 95 55 100 C62 101 68 98 70 92" fill="none" stroke="url(#vicCupGrad)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M140 55 C170 55 172 95 145 100 C138 101 132 98 130 92" fill="none" stroke="url(#vicCupGrad)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M62 48 H138 L130 100 C130 122 112 132 100 132 C88 132 70 122 70 100 Z" fill="url(#vicCupGrad)"/>
+          <path d="M100 68 L105 80 L118 81 L108 89 L111 102 L100 95 L89 102 L92 89 L82 81 L95 80 Z" fill="#fff7e2"/>
+          <rect x="93" y="132" width="14" height="18" fill="url(#vicBaseGrad)"/>
+          <path d="M78 150 H122 L128 165 H72 Z" fill="url(#vicBaseGrad)"/>
+          <rect x="65" y="165" width="70" height="10" rx="3" fill="#c9740a"/>
+        </svg>
+      </div>
+
+      <div id="vic-headline">You Won!</div>
+      <div id="vic-subline">Quiz complete — brilliant work</div>
+
+      <div id="vic-score-card">
+        <div id="vic-score-num">0</div>
+        <div id="vic-score-label">Final Score</div>
+      </div>
+
+      <button id="vic-continue-btn">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="vic-secret-toast"></div>
+
+<script>
+// Exam-level difficulty: All options are strictly identical in length to prevent guessing.
+const Q=[
+["What is the primary purpose of the HTTP Host header?",["Routing requests to the correct virtual host securely safely","Encrypting network traffic between client and server globally","Authenticating the user's active session cookie locally now","Compressing the HTTP response payload for faster transfer"],0,
+"The Host header tells the server which website the client wants to reach, enabling virtual hosting on a single IP."],
+["Why is the Host header considered a security risk?",["It is fully client-controlled plain text input unvalidated","It is automatically encrypted by the web browser safely now","It requires administrative privileges to modify locally here","It is stripped by network firewalls before reaching server"],0,
+"The Host header is just plain text sent by the client. If the application trusts it blindly for sensitive logic, it becomes a vulnerability."],
+["In password reset poisoning, how does the attacker capture the token?",["The victim clicks the spoofed link sending token to attacker","The attacker brute-forces the token from the server database","The server logs the token in a publicly accessible directory","The attacker intercepts the email before it reaches victim"],0,
+"The app generates a reset link using the spoofed Host. The victim clicks it, sending the token to the attacker's server."],
+["What is required for web cache poisoning via Host header to work?",["The response reflects the Host value and gets cached safely","The server executes the Host value as a server-side script","The application ignores the Host header completely now here","The network firewall blocks the spoofed Host header locally"],0,
+"If the Host header is reflected in the response (e.g., canonical link) and cached, all visitors get the poisoned version."],
+["How does routing-based SSRF via Host header occur?",["A reverse proxy routes the request based on the Host header","The database server executes queries based on Host header","The client browser executes JavaScript from the Host header","The operating system resolves DNS using Host header now"],0,
+"A reverse proxy reads the spoofed Host header and forwards the request to an internal, attacker-controlled destination."],
+["What flaw enables Host header authentication bypass?",["The application trusts the Host value for access control checks","The application encrypts the Host value using weak algorithms","The application logs the Host value to a public file locally","The application blocks the Host value using a strict WAF now"],0,
+"If the app assumes Host == internal.company.com means trusted, an attacker can just spoof the Host header."],
+["Which HTTP header is a common alternative to Host for overriding?",["The X-Forwarded-Host header is commonly used for overriding","The Content-Security-Policy header is used for overriding","The Strict-Transport-Security header is used for overriding","The X-Frame-Options header is used for overriding safely"],0,
+"X-Forwarded-Host carries the original Host through a proxy chain and is often not validated like the main Host header."],
+["What is the impact of a successful password reset poisoning?",["Full account takeover without needing the victim password","Denial of service by crashing the web server completely","Remote code execution on the target server instantly now","Cross-site scripting executing in the victim browser safely"],0,
+"The attacker captures the reset token and resets the victim's password, taking over the account."],
+["In cache poisoning, who is affected by the poisoned cached response?",["All subsequent visitors requesting the same cached page","Only the attacker who sent the initial poisoning request","Only the server administrator viewing the access logs now","No one, the cache automatically purges poisoned entries"],0,
+"The poisoned response is stored under a generic cache key, serving the malicious content to everyone."],
+["Why do applications use X-Forwarded-Host?",["To carry the original Host value through a proxy chain safely","To encrypt the Host value during transit over the network","To block malicious Host headers from reaching the server","To compress the Host value to save network bandwidth now"],0,
+"Proxies use it to pass the original Host header to the backend, but attackers can inject it to bypass validations."],
+["Which of the following is NOT a Host override header?",["X-Content-Type-Options is NOT a Host override header safely","X-Forwarded-Host is NOT a Host override header locally now","X-Host is NOT a Host override header entirely globally now","Forwarded is NOT a Host override header securely safely now"],0,
+"X-Content-Type-Options prevents MIME sniffing, it has nothing to do with Host headers."],
+["What makes virtual hosting possible on a single IP address?",["The HTTP Host header allows multiple sites on one IP address","The HTTP Host header encrypts traffic on port 443 securely","The HTTP Host header authenticates users on the network locally","The HTTP Host header compresses files for faster transfer"],0,
+"Because the Host header specifies the domain, a server can host multiple sites on port 80/443."],
+["If an app uses Host to build internal routing URLs, what arises?",["Server-Side Request Forgery (SSRF) vulnerability locally","Cross-Site Scripting (XSS) vulnerability entirely safely now","SQL Injection (SQLi) vulnerability globally completely now","Insecure Direct Object Reference (IDOR) vulnerability"],0,
+"If the proxy forwards based on the Host, setting it to an internal IP routes the request internally (SSRF)."],
+["How can an attacker confirm blind SSRF via Host header?",["Set the Host header to a Burp Collaborator domain securely","Set the Host header to a random numeric IP address locally","Set the Host header to localhost or 127.0.0.1 safely now","Set the Host header to the target domain name directly now"],0,
+"Using a Burp Collaborator domain confirms the server reached out when a DNS/HTTP hit is logged."],
+["What is the best defense against Host header attacks?",["Validate the Host header against a strict whitelist securely","Remove the Host header from all incoming HTTP requests","Encrypt the Host header using AES-256 encryption globally","Block all requests containing a Host header entirely now"],0,
+"The server should ignore arbitrary Host values and only process requests for whitelisted domains."],
+["What happens if a proxy doesn't include Host in the cache key?",["Cache poisoning becomes possible if Host is ignored in keys","Cross-site scripting becomes possible if Host is ignored now","SQL injection becomes possible if Host is ignored safely","Denial of service becomes possible if Host is ignored now"],0,
+"If the cache key doesn't account for Host, a poisoned response overwrites the legitimate one for everyone."],
+["What assumption do developers make that leads to auth bypass?",["Assuming the Host header cannot be spoofed by external users","Assuming the Host header is encrypted during transmission","Assuming the Host header contains valid session cookies now","Assuming the Host header is validated by the browser locally"],0,
+"Developers assume Host == internal is safe, forgetting external attackers can spoof the Host header."],
+["Which HTTP method is typically used for password reset requests?",["The POST HTTP method is typically used for reset requests","The GET HTTP method is typically used for reset requests now","The DELETE HTTP method is typically used for reset requests","The PUT HTTP method is typically used for reset requests now"],0,
+"Password reset forms usually submit user input via POST requests."],
+["Can an attacker spoof the Host header from a standard browser?",["No, it requires an intercepting proxy like Burp Suite safely","Yes, by typing directly into the browser address bar now","Yes, by modifying the browser's local configuration file","No, the browser automatically blocks Host header spoofing"],0,
+"Browsers automatically set the Host header based on the URL; attackers must use tools like Burp to modify it."],
+["What is a common string reflected in the response during cache poisoning?",["A canonical link tag or a script src URL in the HTML body","A database query string in the backend SQL syntax safely","An HTTP Only flag in the Set-Cookie response header now","A Content-Length integer value in the HTTP response header"],0,
+"The Host value is often reflected in canonical links or script tags, which is then cached."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Identify Host Header Usage", items: [
+    "Check if the application reflects the Host header in responses (canonical links, script src).",
+    "Identify if password reset links or emails are built using the Host header.",
+    "Check if reverse proxies or load balancers route traffic based on the Host header."
+  ]},
+  { title: "2. Test Password Reset Poisoning", items: [
+    "Intercept a password reset request and change the Host header to your attacker domain.",
+    "Request a reset for a victim email and check if the sent email contains your attacker domain.",
+    "If the victim clicks the link, capture the token on your attacker server."
+  ]},
+  { title: "3. Test Cache Poisoning", items: [
+    "Send a request with a malicious Host header.",
+    "Check if the response reflects the malicious Host and gets cached by a CDN/proxy.",
+    "Verify if subsequent visitors receive the poisoned cached response."
+  ]},
+  { title: "4. Test Routing-Based SSRF", items: [
+    "Change the Host header to an internal IP (e.g., 192.168.x.x) or hostname.",
+    "Use a Burp Collaborator domain in the Host header to confirm blind SSRF.",
+    "Check if internal admin panels or metadata endpoints are accessible."
+  ]},
+  { title: "5. Test Auth Bypass & Override Headers", items: [
+    "Set the Host header to <code>internal.company.com</code> or <code>localhost</code> to bypass auth.",
+    "If main Host is validated, try override headers: <code>X-Forwarded-Host: attacker.com</code>.",
+    "Test other overrides: <code>X-Host</code>, <code>X-Forwarded-Server</code>, <code>Forwarded: host=</code>."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Password Reset Poisoning", code: "POST /forgot-password HTTP/1.1\nHost: attacker-controlled.com\nContent-Type: application/x-www-form-urlencoded\n\nemail=victim@target.com" },
+  { name: "2. Cache Poisoning", code: "GET / HTTP/1.1\nHost: attacker.com\n\n(If response reflects Host and gets cached, all visitors get poisoned)" },
+  { name: "3. Routing-Based SSRF", code: "GET /admin HTTP/1.1\nHost: internal-service.local\n\n(Or use Burp Collaborator: Host: your-id.oastify.com)" },
+  { name: "4. Authentication Bypass", code: "GET /admin/dashboard HTTP/1.1\nHost: internal.company.com\n\n(Bypasses auth if app trusts internal Host headers)" },
+  { name: "5. Override Header Bypass", code: "GET /reset-password HTTP/1.1\nHost: real-whitelisted-site.com\nX-Forwarded-Host: attacker.com\n\n(Try also: X-Host, X-Forwarded-Server, X-HTTP-Host-Override)" }
+];
+
+let cur=0,score=0;
+let cheatPopupShown = false;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===Q.length?"Perfect. You actually understand this.":
+    score>=16?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+
+  const maxScore = Q.length;
+  const isPerfect = score === maxScore;
+  const isGreat = score >= (maxScore * 0.8) && score < maxScore;
+  
+  if(isPerfect || isGreat){
+    playVictoryAnimation(score, maxScore);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  cheatPopupShown = false;
+  document.getElementById('cheatBanner').style.display = 'none';
+  document.getElementById('vic-overlay').classList.remove('show');
+  document.getElementById('vic-overlay').classList.remove('tier-perfect','tier-great');
+  
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+function showKit(){
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+
+function showConcept(){
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept & Theory';
+}
+
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  if(cur < Q.length) {
+    document.getElementById('quizView').style.display='block';
+    document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  } else {
+    document.getElementById('doneView').style.display='block';
+    document.getElementById('pageTitle').textContent='Result';
+  }
+}
+
+// ==========================================
+// ANTI-CHEAT PROCTORING SYSTEM
+// ==========================================
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        const quizView = document.getElementById('quizView');
+        if (quizView.style.display === 'block' && cur < Q.length) {
+            document.getElementById('cheatBanner').style.display = 'block';
+            if (!cheatPopupShown) {
+                showCheatWarning();
+                cheatPopupShown = true;
+            }
+        }
+    }
+});
+
+function showCheatWarning() {
+    document.getElementById('cheatModal').classList.add('show');
+}
+
+function closeCheatWarning() {
+    document.getElementById('cheatModal').classList.remove('show');
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('host_header_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('host_header_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+
+// ==========================================
+// VICTORY ANIMATION ENGINE
+// ==========================================
+let vicSparkleInterval = null;
+
+function playVictoryAnimation(finalScore, maxScore){
+  const overlay = document.getElementById('vic-overlay');
+  const stage = document.getElementById('vic-stage');
+
+  const isPerfect = finalScore === maxScore;
+  const isGreat   = finalScore >= (maxScore * 0.8) && finalScore < maxScore;
+
+  stage.querySelectorAll('.vic-star, .vic-confetti, .vic-sparkle').forEach(el => el.remove());
+  overlay.classList.remove('tier-perfect','tier-great');
+  overlay.classList.add(isPerfect ? 'tier-perfect' : 'tier-great');
+
+  document.getElementById('vic-score-num').textContent = '0';
+  document.getElementById('vic-score-label').textContent = 'Final Score  ·  out of ' + maxScore;
+
+  const headlineEl = document.getElementById('vic-headline');
+  const sublineEl  = document.getElementById('vic-subline');
+  if(isPerfect){
+    headlineEl.textContent = 'You Won!';
+    sublineEl.textContent  = 'Quiz complete — brilliant work';
+  } else {
+    headlineEl.textContent = 'Well Done!';
+    sublineEl.textContent  = `You got ${finalScore} out of ${maxScore} — solid work`;
+  }
+
+  overlay.classList.add('show');
+
+  const starCount = isPerfect ? 45 : 24;
+  for(let i=0;i<starCount;i++){
+    const s = document.createElement('div');
+    s.className = 'vic-star';
+    s.style.left = Math.random()*100 + '%';
+    s.style.top = Math.random()*100 + '%';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    stage.appendChild(s);
+  }
+
+  const colorsPerfect = ['#ffc95c', '#ff6f91', '#6fe3c9', '#ffffff', '#f5a623'];
+  const colorsGreat   = ['#00d4ff', '#80e5ff', '#ffffff'];
+  const colors = isPerfect ? colorsPerfect : colorsGreat;
+  const confettiCount = isPerfect ? 90 : 28;
+
+  for(let i=0;i<confettiCount;i++){
+    const c = document.createElement('div');
+    c.className = 'vic-confetti';
+    const size = 6 + Math.random()*7;
+    const isCircle = Math.random() > 0.6;
+    c.style.width = size + 'px';
+    c.style.height = (isCircle ? size : size*2.2) + 'px';
+    c.style.borderRadius = isCircle ? '50%' : '2px';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.left = Math.random()*100 + '%';
+    c.style.animationDuration = (3 + Math.random()*2.5) + 's';
+    c.style.animationDelay = (Math.random()*1.6) + 's';
+    c.style.opacity = isPerfect ? 0.95 : 0.6;
+    c.style.setProperty('--drift', (Math.random()*200-100) + 'px');
+    c.style.setProperty('--spin', (Math.random()*720-360) + 'deg');
+    stage.appendChild(c);
+  }
+
+  function sparkleSVG(){
+    return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#fff7e2"/></svg>';
+  }
+  function spawnSparkles(count){
+    const rect = stage.getBoundingClientRect();
+    const cx = rect.width/2, cy = rect.height*0.36;
+    for(let i=0;i<count;i++){
+      const sp = document.createElement('div');
+      sp.className = 'vic-sparkle';
+      const angle = Math.random()*Math.PI*2;
+      const dist = 70 + Math.random()*90;
+      sp.style.left = (cx + Math.cos(angle)*dist) + 'px';
+      sp.style.top = (cy + Math.sin(angle)*dist) + 'px';
+      sp.style.animationDelay = (Math.random()*0.3) + 's';
+      sp.innerHTML = sparkleSVG();
+      stage.appendChild(sp);
+      setTimeout(()=> sp.remove(), 1800);
+    }
+  }
+  if(vicSparkleInterval) clearInterval(vicSparkleInterval);
+  if(isPerfect){
+    setTimeout(()=> spawnSparkles(6), 1200);
+    vicSparkleInterval = setInterval(()=> spawnSparkles(6), 1800);
+    setTimeout(()=> clearInterval(vicSparkleInterval), 12000);
+  } else {
+    setTimeout(()=> spawnSparkles(3), 1200);
+  }
+
+  const scoreEl = document.getElementById('vic-score-num');
+  setTimeout(()=>{
+    const duration = 1200;
+    const start = performance.now();
+    function step(now){
+      const progress = Math.min((now-start)/duration, 1);
+      const eased = 1 - Math.pow(1-progress, 3);
+      scoreEl.textContent = Math.round(eased * finalScore);
+      if(progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }, 1550);
+}
+
+document.getElementById('vic-continue-btn').addEventListener('click', ()=>{
+  document.getElementById('vic-overlay').classList.remove('show');
+  if(vicSparkleInterval) clearInterval(vicSparkleInterval);
+});
+
+// ==========================================
+// SECRET TEST SHORTCUTS
+//   testwin    -> forces a perfect 20/20
+//   testgreat  -> forces a 16/20
+// ==========================================
+(function(){
+  function activateTestScore(forcedScore, label){
+    score = forcedScore;
+    cur = Q.length;
+    finish();
+    showSecretToast(`✓ ${label} — score forced to ${forcedScore}/${Q.length}`);
+  }
+
+  function showSecretToast(msg){
+    const t = document.getElementById('vic-secret-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(()=> t.classList.remove('show'), 3000);
+  }
+
+  const CODES = {
+    'testwin':  20,
+    'testgreat':16
+  };
+  const maxLen = Math.max(...Object.keys(CODES).map(k=>k.length));
+  let buffer = '';
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key.length !== 1) return;
+    buffer = (buffer + e.key.toLowerCase()).slice(-maxLen);
+    for(const code in CODES){
+      if(buffer.endsWith(code)){
+        buffer = '';
+        activateTestScore(CODES[code], `Test code "${code}"`);
+        break;
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

