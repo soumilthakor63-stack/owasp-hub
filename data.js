@@ -103,7 +103,7 @@ const OWASP_DATA = [
     code: "A10",
     title: "Mishandling of Exceptional Conditions",
     subs: [
-      { name: "Information Disclosure (via Exceptions)", count: null, note: "Verbose error handling, exception leakage", file: "pages/a10-exceptional-conditions/exception-handling.html", done: true },
+      { name: "Information Disclosure (via Exceptions)", count: null, note: "Verbose error handling, exception leakage", file: "pages/a10-Exception handling and information disclosure/Exception handling and information disclosure.html", done: true },
     ],
   },
 ];
