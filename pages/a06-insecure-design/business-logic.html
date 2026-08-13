@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>SSTI — Quiz, Concept & Recon Kit</title>
+<title>Business Logic Vulns — Quiz, Concept & Recon Kit</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap');
 
 :root{
-  --bg:#020814; --panel:#0a1424; --line:#1c2e4a;
-  --text:#c5d1e8; --dim:#5a6b80; --accent:#00e5ff; --bad:#ff5722;
+  --bg:#050814; --panel:#0b1326; --line:#1c294a;
+  --text:#c5d1e8; --dim:#6b7a99; --accent:#4d8bff; --bad:#ff3366;
   --mono:'Fira Code','JetBrains Mono','Consolas',monospace;
 }
 *{box-sizing:border-box;}
@@ -21,20 +21,20 @@ h1{font-size:22px;margin:6px 0 26px;color:#fff;}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
 .qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
 .qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
-.opt{display:block;width:100%;text-align:left;background:#060e1a;border:1px solid var(--line);
+.opt{display:block;width:100%;text-align:left;background:#070c18;border:1px solid var(--line);
   color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
   font-family:var(--mono);font-size:13.5px;transition:.15s;}
-.opt:hover{border-color:var(--accent);background:#101a30;box-shadow:0 0 8px rgba(0,229,255,0.15);}
-.opt.correct{background:#001824;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
-.opt.wrong{background:#241108;border-color:var(--bad);color:var(--bad);}
+.opt:hover{border-color:var(--accent);background:#101a30;box-shadow:0 0 8px rgba(77,139,255,0.15);}
+.opt.correct{background:#0a1525;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#241018;border-color:var(--bad);color:var(--bad);}
 .opt[disabled]{cursor:default;}
 .score{color:var(--dim);font-size:13px;}
 .center{text-align:center;}
 .big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
-.btn{background:var(--accent);color:#020814;border:none;padding:12px 20px;border-radius:7px;
+.btn{background:var(--accent);color:#050814;border:none;padding:12px 20px;border-radius:7px;
   font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
-.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(0,229,255,0.2);}
-.btn:hover{background:#33eaff;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(77,139,255,0.2);}
+.btn:hover{background:#66a3ff;}
 .btn.alt:hover{background:#101a30;}
 .emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;}
 @keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
@@ -43,42 +43,42 @@ h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
 .chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
 .chk input{margin-top:3px;accent-color:var(--accent);}
 .chk.done label{color:var(--dim);text-decoration:line-through;}
-pre{background:#060e1a;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
-  overflow-x:auto;font-size:12.5px;color:#b3f5ff;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+pre{background:#070c18;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#b3d5ff;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
 .pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
 #quizView,#kitView,#conceptView{display:none;}
 
 /* Concept View Styles */
 .concept-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:7px;padding:18px;margin-bottom:16px;}
-.concept-card h3{margin-top:0;color:#fff;font-size:16px;text-shadow:0 0 5px rgba(0,229,255,0.3);}
+.concept-card h3{margin-top:0;color:#fff;font-size:16px;text-shadow:0 0 5px rgba(77,139,255,0.3);}
 .concept-card p{font-size:14px;line-height:1.7;color:var(--text);}
 .concept-card b{color:var(--accent);}
 .concept-card ul{font-size:14px;line-height:1.7;color:var(--text);padding-left:20px;}
-.concept-card code{background:rgba(0,229,255,0.1);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:12.5px;}
+.concept-card code{background:rgba(77,139,255,0.1);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:12.5px;}
 .section-divider{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin-top:30px;margin-bottom:15px;}
 
 .topbtns{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
-.explain{margin-top:12px;padding:12px 14px;background:#060e1a;border:1px solid var(--line);
+.explain{margin-top:12px;padding:12px 14px;background:#070c18;border:1px solid var(--line);
   border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
 .explain b{color:var(--accent);}
 #nextBtn{display:none;margin-top:16px;}
 
 /* Anti-Cheat Persistent Banner */
 .cheat-banner {
-  background: rgba(255, 87, 34, 0.1); border: 1px solid var(--bad); color: var(--bad);
+  background: rgba(255, 51, 102, 0.1); border: 1px solid var(--bad); color: var(--bad);
   padding: 10px 14px; border-radius: 7px; margin-bottom: 18px; font-size: 12.5px; text-align: center; display: none;
 }
 
 /* Anti-Cheat Modal */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(2, 8, 20, 0.9); display: none; 
+  background: rgba(5, 8, 20, 0.9); display: none; 
   justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px);
 }
 .modal-overlay.show { display: flex; }
 .modal-content {
   background: var(--panel); border: 1px solid var(--bad); padding: 30px; border-radius: 10px;
-  text-align: center; max-width: 400px; box-shadow: 0 0 30px rgba(255, 87, 34, 0.3);
+  text-align: center; max-width: 400px; box-shadow: 0 0 30px rgba(255, 51, 102, 0.3);
 }
 .modal-icon { font-size: 40px; margin-bottom: 10px; }
 .modal-content h2 { color: var(--bad); margin: 0 0 10px; border: none; }
@@ -125,7 +125,7 @@ pre{background:#060e1a;border:1px solid var(--line);border-radius:7px;padding:12
 .vic-sparkle{ position: absolute; width: 10px; height: 10px; opacity: 0; animation: vicSparklePop 1.4s ease-out forwards; }
 .vic-sparkle svg{ width: 100%; height: 100%; }
 @keyframes vicSparklePop{ 0%{ opacity: 0; transform: scale(0) rotate(0deg); } 35%{ opacity: 1; transform: scale(1.3) rotate(45deg); } 100%{ opacity: 0; transform: scale(0.4) rotate(120deg); } }
-#vic-secret-toast{ position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(10, 20, 36, 0.95); border: 1px solid var(--accent); color: var(--accent); padding: 10px 18px; border-radius: 8px; font-family: var(--mono); font-size: 12.5px; z-index: 30000; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+#vic-secret-toast{ position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(11, 19, 38, 0.95); border: 1px solid var(--accent); color: var(--accent); padding: 10px 18px; border-radius: 8px; font-family: var(--mono); font-size: 12.5px; z-index: 30000; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
 #vic-secret-toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
 @media (prefers-reduced-motion: reduce){ #vic-overlay *{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
 </style>
@@ -144,7 +144,7 @@ pre{background:#060e1a;border:1px solid var(--line);border-radius:7px;padding:12
 </div>
 
 <div class="wrap">
-  <div class="tag">WVAPT // Server-Side Template Injection</div>
+  <div class="tag">WVAPT // Business Logic Vulnerabilities</div>
   <h1 id="pageTitle">Concept Check — 20 Questions</h1>
 
   <div id="quizView">
@@ -177,143 +177,81 @@ pre{background:#060e1a;border:1px solid var(--line);border-radius:7px;padding:12
 
   <div id="conceptView">
     <button class="btn alt" onclick="showQuiz()" style="margin-bottom: 20px;">← Back to Quiz</button>
-    <h2>Concept & Theory: SSTI</h2>
+    <h2>Concept & Theory: Business Logic Vulns</h2>
     
     <div class="concept-card">
-      <h3>What is SSTI in Simple Terms?</h3>
-      <p>Imagine you have a website that greets you by name: "Hello, John!" The developer creates a template that looks like: <code>Hello, {{ name }}!</code></p>
-      <p>The template engine (like Jinja2, Twig, or ERB) takes this template, replaces <code>{{ name }}</code> with your actual name, and sends the final HTML to your browser. This is how templating works.</p>
-      <p>SSTI happens when an attacker can inject their own template code instead of just plain data. Instead of submitting "John" as their name, they submit something like <code>{{ 7*7 }}</code>. If the server executes this and returns "49" instead of the literal text <code>{{7*7}}</code>, the application is vulnerable.</p>
+      <h3>The Core Idea</h3>
+      <p>A business logic vulnerability isn't a "coding bug" — the code works exactly as written. The problem is that the logic itself (the rules the developers designed) has a flaw that lets someone abuse the intended process.</p>
+      <p>This is different from something like SQL injection or JWT attacks, where there's a technical flaw. Here, everything technically "works" — there's no error, no crash — but the workflow or business rule can be twisted to do something the designers never intended.</p>
+      <p><b>Simple analogy:</b> Imagine a store has a rule "customers can return items within 30 days for a refund." Nothing technically stops someone from buying an item, using it heavily, and returning it right before day 30 for a full refund — that's not a "hack," it's abusing a legitimate process. Business logic vulnerabilities are the software equivalent of that.</p>
+    </div>
+
+    <div class="section-divider">The 11 Variants</div>
+
+    <div class="concept-card">
+      <h3>1. Excessive trust in client-side controls</h3>
+      <p>Server blindly trusts data sent from the browser/app instead of re-checking it itself.</p>
+      <p><b>Example:</b> A shopping site calculates the price of an item using JavaScript in your browser, then sends that final price to the server. Attacker just edits the price value in their browser before submitting → pays $1 for a $500 item.</p>
     </div>
 
     <div class="concept-card">
-      <h3>Why is This Dangerous? (The Impact)</h3>
-      <p><b>RCE (Remote Code Execution)</b> - This is the worst-case scenario. The attacker can run any command on the server as if they were sitting at the terminal. This means they can:</p>
-      <ul>
-        <li>Read sensitive files (/etc/passwd, source code, database credentials)</li>
-        <li>Modify or delete files</li>
-        <li>Install malware</li>
-        <li>Use the server to attack other systems</li>
-      </ul>
-      <p><b>Information Disclosure</b> - Even without full RCE, attackers can often:</p>
-      <ul>
-        <li>Read system files directly through the template engine</li>
-        <li>Extract configuration details</li>
-        <li>Access source code</li>
-      </ul>
+      <h3>2. High-level logic vulnerability</h3>
+      <p>A flaw in the overall intended process/workflow of the feature itself, at a broad conceptual level (not one specific step).</p>
+      <p><b>Example:</b> A password reset flow that emails a reset link to whatever email address is provided in the request — instead of the account's actual registered email — letting an attacker reset someone else's password.</p>
     </div>
 
     <div class="concept-card">
-      <h3>The Core Mistake That Causes SSTI</h3>
-      <p><b>❌ VULNERABLE CODE (Bad Practice)</b></p>
-      <pre># Developer builds the template using user input directly
-name = request.args.get('name')
-template = "Hello, " + name + "!"  # User input becomes PART of the template
-return render_template_string(template)</pre>
-      <p><b>✅ SAFE CODE (Good Practice)</b></p>
-      <pre># Template is fixed, user input is passed as data
-name = request.args.get('name')
-template = "Hello, {{ name }}!"  # Template is fixed
-return render_template_string(template, name=name)  # Data is separate</pre>
-      <p>Think of it like SQL injection - if you concatenate user input into a SQL query, it's vulnerable. Same concept here, but with templates.</p>
-    </div>
-
-    <div class="section-divider">How Attackers Exploit SSTI: The 3-Stage Methodology</div>
-
-    <div class="concept-card">
-      <h3>1. DETECT - Is the application vulnerable?</h3>
-      <p><b>Plaintext Context (Input appears directly in the output)</b><br>Your input becomes visible text on the page (like a greeting, comment, or message)</p>
-      <ul>
-        <li>Test: Inject a math expression → <code>{{7*7}}</code></li>
-        <li>If vulnerable: Server returns <code>49</code> instead of <code>{{7*7}}</code></li>
-      </ul>
-      <p><b>Code Context (Input is inside an existing {{ }} expression)</b><br>Your input looks like a normal variable lookup (e.g., <code>?name=user.first_name</code>)</p>
-      <ul>
-        <li>The app might do: <code>{{ user.first_name }}</code> where first_name comes from your input</li>
-        <li>Test: Break out of the expression → <code>user.first_name}}{{7*7}}</code></li>
-        <li>If vulnerable: You see <code>Peter Wiener49</code> (the <code>{{7*7}}</code> evaluated to 49)</li>
-      </ul>
+      <h3>3. Insufficient workflow validation</h3>
+      <p>The application doesn't check whether steps in a multi-step process are completed in the correct order.</p>
+      <p><b>Example:</b> An online purchase flow: Cart → Payment → Confirmation. If a user can jump directly to the "Confirmation" step URL without ever completing "Payment," they get the item for free.</p>
     </div>
 
     <div class="concept-card">
-      <h3>2. IDENTIFY - Which template engine is it?</h3>
-      <p>Different engines use different syntax:</p>
-      <ul>
-        <li><b>Jinja2 (Python):</b> <code>{{ config.__class__.__init__.__globals__['os'].popen('id').read() }}</code></li>
-        <li><b>Twig (PHP):</b> <code>{{ _self.env.registerUndefinedFilterCallback("exec") }}{{ _self.env.getFilter("id") }}</code></li>
-        <li><b>ERB (Ruby):</b> <code>&lt;%= 'id' %&gt;</code></li>
-        <li><b>Tornado (Python):</b> <code>{% import os %}{{ os.system('id') }}</code></li>
-        <li><b>Freemarker (Java):</b> <code>&lt;#assign ex="freemarker.template.utility.Execute"?new()&gt;${ ex("id") }</code></li>
-      </ul>
-      <p><b>How to identify:</b> Send invalid syntax and read error messages. For example, sending <code>&lt;%=foobar%&gt;</code> to an ERB app returns an error containing <code>erb.rb</code> - telling you exactly which engine it is.</p>
+      <h3>4. Flawed enforcement of business rules</h3>
+      <p>A specific business rule exists, but it's enforced incorrectly or incompletely somewhere in the system.</p>
+      <p><b>Example:</b> A coupon is supposed to be "one use per customer," but the check is only done against a session, not the account — so logging out and back in lets you reuse it.</p>
     </div>
 
     <div class="concept-card">
-      <h3>3. EXPLOIT - Get RCE or Information Disclosure</h3>
-      <p>Once you know the engine, use its specific syntax to execute commands:</p>
-      <pre>Jinja2 (Python) - RCE
-{{ self.__init__.__globals__.__builtins__.__import__('os').popen('id').read() }}
-
-ERB (Ruby) - RCE
-&lt;%= 'id' %&gt;
-
-Tornado (Python) - RCE
-{% import os %}{{ os.system('id') }}</pre>
-    </div>
-
-    <div class="section-divider">The 3 Variants of SSTI</div>
-
-    <div class="concept-card">
-      <h3>1. Basic SSTI (Identifying Engine + Exploiting)</h3>
-      <p>Simple detection → Identification → Exploitation</p>
-      <p><b>Real Example:</b> You find a "Product Stock Check" that shows "Unfortunately this product is out of stock". The message parameter is vulnerable. You send:</p>
-      <ul>
-        <li><code>?message=&lt;%= 7*7 %&gt;</code> → Returns "49" (confirms ERB)</li>
-        <li><code>?message=&lt;%= 'rm /home/carlos/morale.txt' %&gt;</code> → Deletes the file (solves lab)</li>
-      </ul>
+      <h3>5. Low-level logic flaw (rounding errors)</h3>
+      <p>Tiny math/precision mistakes in calculations (especially money) that can be exploited repeatedly for gain.</p>
+      <p><b>Example:</b> A currency converter rounds down fractions of a cent. If you can trigger thousands of tiny transactions, those "lost" fractions might be redirected/exploited to slowly accumulate real value (classic "salami slicing" attack).</p>
     </div>
 
     <div class="concept-card">
-      <h3>2. SSTI with Information Disclosure via Error Messages</h3>
-      <p>Sometimes just triggering errors reveals sensitive information:</p>
-      <p>Example: Sending invalid syntax like: <code>{{ ''.__class__.__mro__[1].__subclasses__() }}</code></p>
-      <ul>
-        <li>The error message might reveal the entire class hierarchy</li>
-        <li>You can enumerate all loaded classes to find dangerous ones</li>
-        <li>This is how many sandbox escapes are discovered</li>
-      </ul>
-      <p><b>How it works:</b> Template engines are built on top of programming languages. Using introspection, attackers can climb from a harmless object to dangerous system modules.</p>
-      <pre># Normal use
-d = Dog()
-print(d.bark())  # "Woof!"
-
-# Introspection - examining the object itself
-print(d.__class__)          # &lt;class '__main__.Dog'&gt;
-print(d.__class__.__init__) # Shows the __init__ method
-print(d.__class__.__init__.__globals__) # Global namespace - often contains 'os' module</pre>
+      <h3>6. Inconsistent security controls across channels</h3>
+      <p>The same action can be performed through multiple channels (web, mobile app, API), but security checks differ between them.</p>
+      <p><b>Example:</b> The website enforces "must verify email before purchase," but the mobile app's API endpoint (doing the same action) forgot to add that same check.</p>
     </div>
 
     <div class="concept-card">
-      <h3>3. SSTI Leading to RCE</h3>
-      <p>The most severe variant - full server takeover.</p>
-      <p><b>Payload Chain:</b></p>
-      <pre>{{7*7}} → Proves SSTI exists
-         ↓
-{{ config.__class__.__init__.__globals__ }} → Introspection to find os module
-         ↓
-{{ config.__class__.__init__.__globals__['os'].popen('id').read() }} → Execute OS command
-         ↓
-{{ config.__class__.__init__.__globals__['os'].popen('rm -rf /').read() }} → Any command possible</pre>
+      <h3>7. Flawed assumption about user behavior</h3>
+      <p>Developers design a flow assuming users will only ever do things "the normal way," not anticipating deliberate misuse.</p>
+      <p><b>Example:</b> A hotel booking system assumes people won't cancel and rebook repeatedly, so it doesn't limit that — attacker cancels/rebooks in a loop to exploit a "first-time booking discount" every time.</p>
     </div>
 
     <div class="concept-card">
-      <h3>Practical Example Walkthrough (ERB SSTI)</h3>
-      <ol>
-        <li><b>Find the input:</b> URL parameter <code>?message=...</code> that reflects back on the page</li>
-        <li><b>Test:</b> <code>?message=&lt;%= 7*7 %&gt;</code> → Returns "49" (SSTI confirmed)</li>
-        <li><b>Identify:</b> Error shows <code>erb.rb</code> → ERB engine</li>
-        <li><b>Exploit:</b> <code>?message=&lt;%= 'rm /home/carlos/morale.txt' %&gt;</code> → Deletes file</li>
-      </ol>
+      <h3>8. Domain/input validation logic flaws</h3>
+      <p>Input is technically valid (right format, right data type) but logically nonsensical or exploitable, and the app doesn't catch that.</p>
+      <p><b>Example:</b> A quantity field accepts negative numbers technically (it's still an integer), so entering "-5" items at checkout might make the total price negative, potentially crediting the attacker's account.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>9. Insufficient anti-automation</h3>
+      <p>No protection against a real user's actions being repeated thousands of times automatically (bots/scripts).</p>
+      <p><b>Example:</b> No CAPTCHA or rate limit on a "redeem gift card code" endpoint → attacker scripts thousands of guesses per second to brute-force valid codes.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>10. Weak isolation on dual-use endpoints</h3>
+      <p>The same API endpoint/functionality is used for two different purposes (e.g., admin and regular users), but doesn't properly separate what each type of user can do with it.</p>
+      <p><b>Example:</b> A single /updateProfile endpoint is used both for regular users editing their name, and internally for admins editing user roles — if a regular user can just add a role field to their own request, they escalate themselves to admin.</p>
+    </div>
+
+    <div class="concept-card">
+      <h3>11. Rating/review/coupon abuse logic flaws</h3>
+      <p>Features meant for genuine feedback or promotions can be repeated or faked because there's no real check on legitimacy.</p>
+      <p><b>Example:</b> A "leave a review to get 10% off" promo doesn't check if you actually purchased the product, or doesn't limit reviews per account — attacker spams fake 5-star reviews on their own product from multiple accounts, farming discount codes each time.</p>
     </div>
   </div>
 
@@ -376,100 +314,104 @@ print(d.__class__.__init__.__globals__) # Global namespace - often contains 'os'
 // Clear local storage on load to prevent any old cached state
 localStorage.clear();
 
-// Note: HTML tags in strings are safely escaped to prevent browser parser errors.
 // EXACTLY 20 QUESTIONS. Numbered 1 to 20 for absolute verification.
 const Q=[
 // 1
-["What is the core concept of Server-Side Template Injection?",["Injecting template syntax that is executed by the server engine","Stealing session cookies by exploiting a backend database flaw","Crashing the server by sending oversized HTTP payload requests","Bypassing authentication by manipulating the HTTP Host header"],0,
-"SSTI happens when an attacker can inject their own template code instead of just plain data, and the server executes it."],
+["What fundamentally defines a Business Logic Vulnerability?",["A flaw in the designed rules allowing process abuse safely","A technical flaw in cryptographic implementation locally now","A memory corruption bug in the server backend entirely here","An automated scanning error in the CI/CD pipeline globally"],0,
+"A BLV isn't a coding bug; the code works as written, but the logic itself has a flaw that lets someone abuse the intended process."],
 // 2
-["What is the primary root cause of SSTI vulnerabilities?",["User input is concatenated directly into the template string","The server fails to encrypt network traffic using TLS 1.3","The application uses a strict allowlist for input validation","The database executes queries without parameterization"],0,
-"The core mistake is concatenating user input directly into the template string, making it part of the template logic."],
+["How does 'excessive trust in client-side controls' manifest?",["The server blindly trusts prices sent from the browser now","The server encrypts all traffic using TLS 1.3 protocol safely","The server automatically blocks all incoming proxy traffic here","The server validates input against a strict whitelist locally"],0,
+"A shopping site calculates price in JS. The attacker edits the price in the browser before submitting, paying $1 for a $500 item."],
 // 3
-["Which payload is commonly used to detect basic SSTI?",["{{7*7}}","<script>alert(1)<\/script>","'; DROP TABLE users; --","& ping -c 10 127.0.0.1 &"],0,
-"Injecting a math expression like {{7*7}} tests if the server evaluates it as template code instead of plain text."],
+["What is an example of a 'high-level logic vulnerability'?",["A password reset emailing the provided address, not registered","A database dropping tables due to unsanitized SQL input safely","A buffer overflow allowing remote code execution on the server","A cross-site scripting flaw stealing session cookies globally"],0,
+"A password reset flow emails a reset link to whatever address is provided in the request instead of the account's actual registered email."],
 // 4
-["If a server returns '49' instead of '{{7*7}}', what is confirmed?",["The application is vulnerable to Server-Side Template Injection","The application is vulnerable to SQL Injection securely here","The application is vulnerable to Cross-Site Scripting safely","The application is vulnerable to OS Command Injection now"],0,
-"If the server returns 49 instead of the literal text {{7*7}}, the template engine is executing the injected code."],
+["How does 'insufficient workflow validation' get exploited?",["Jumping directly to the confirmation step without paying safely","Injecting malicious JavaScript into the HTML page source code now","Stealing the administrative session cookie from the database","Brute-forcing the cryptographic hash of the user password here"],0,
+"An online purchase flow is Cart -> Payment -> Confirmation. If a user jumps directly to Confirmation without Payment, they get it for free."],
 // 5
-["What is the worst-case impact of a successful SSTI attack?",["Remote Code Execution (RCE) on the server completely","Permanent denial of service by crashing the database now","Stealing the administrative password via a phishing email","Redirecting all users to a malicious external domain safely"],0,
-"RCE allows an attacker to run any command on the server, read sensitive files, and install malware."],
+["What causes 'flawed enforcement of business rules'?",["Checking a coupon against a session instead of an account","Failing to encrypt the database using AES-256 algorithms now","Using outdated cryptographic hashing functions for passwords here","Leaving debug endpoints publicly accessible on the server safely"],0,
+"A coupon is 'one use per customer' but checked against a session. Logging out and back in lets you reuse it."],
 // 6
-["How can attackers identify the specific template engine in use?",["Sending invalid syntax and reading the error messages","Brute-forcing the administrative login form endpoint locally","Monitoring the server response time for intentional delays","Checking the HTTP Content-Type header for MIME types safely"],0,
-"Sending invalid syntax (like <%=foobar%>) often triggers verbose errors revealing the engine (e.g., erb.rb)."],
+["What is a 'low-level logic flaw' (rounding error)?",["Exploiting tiny math mistakes in currency conversions safely","Stealing session tokens via cross-site scripting attacks globally","Bypassing authentication using SQL injection vulnerabilities here","Crashing the server by sending oversized HTTP payloads locally"],0,
+"A currency converter rounds down fractions of a cent. Thousands of tiny transactions accumulate real value (salami slicing)."],
 // 7
-["In Plaintext Context detection, where does the user input appear?",["Directly in the output as visible text on the web page","Inside a JavaScript variable assignment securely entirely","Inside an HTML tag attribute without any encoding safely","Within a backend database table stored permanently now"],0,
-"In Plaintext Context, your input becomes visible text on the page, like a greeting or comment."],
+["How do 'inconsistent security controls across channels' arise?",["The web enforces email verification, but the API forgets it","The database enforces encryption, but the frontend displays it","The server enforces HTTPS, but the mobile app uses HTTP now","The admin enforces passwords, but the user bypasses them here"],0,
+"The same action can be performed through web, mobile, or API. If security checks differ, an attacker uses the weakest channel."],
 // 8
-["In Code Context detection, how does an attacker test for SSTI?",["Breaking out of the existing expression syntax safely","Sending an excessively long payload to crash the server now","Injecting raw HTML script tags to trigger an alert box","Uploading a maliciously crafted image file to the server"],0,
-"In Code Context, input is inside an existing expression. Attackers break out of it (e.g., user.first_name}}{{7*7}})."],
+["What is the flaw in 'flawed assumption about user behavior'?",["Assuming users won't cancel and rebook repeatedly for discounts","Assuming users will always use the latest web browser version","Assuming users will never click on unverified external links now","Assuming users will manually encrypt their own traffic locally"],0,
+"Developers assume people won't cancel and rebook repeatedly to exploit a 'first-time booking discount' every time."],
 // 9
-["Which of the following is a safe coding practice to prevent SSTI?",["Using fixed templates and passing user input as data securely","Concatenating user input directly into the template string","Using the eval() function to process user input locally","Disabling the web application firewall entirely globally"],0,
-"Safe code uses a fixed template and passes user input as a separate data parameter (e.g., name=name)."],
+["How is a 'domain/input validation logic flaw' exploited?",["Entering a negative quantity to make the total price negative","Uploading a maliciously crafted image file to the server safely","Injecting raw HTML script tags into a public comment section now","Intercepting and decrypting HTTPS traffic using Burp Suite here"],0,
+"A quantity field accepts negative numbers technically. Entering '-5' items makes the total price negative, crediting the attacker."],
 // 10
-["What technique allows attackers to climb from a harmless object to system modules?",["Introspection by examining the object's class and globals","SQL injection to dump the database credentials table now","Cross-site scripting to steal the administrator's session","Directory traversal to read the /etc/passwd file locally"],0,
-"Using introspection (e.g., __class__.__init__.__globals__), attackers can climb from a harmless object to dangerous modules."],
+["What is the risk of 'insufficient anti-automation'?",["Attackers script thousands of guesses to brute-force codes","The server automatically deploys malicious code to production","The database automatically drops tables during normal use here","The firewall automatically blocks all legitimate user traffic"],0,
+"No CAPTCHA or rate limit on a 'redeem gift card code' endpoint allows attackers to script thousands of guesses per second."],
 // 11
-["Which Python template engine uses syntax like {{ config.__class__... }}?",["Jinja2","Twig","ERB","Freemarker"],0,
-"Jinja2 is a Python template engine that uses {{ }} syntax and allows introspection via __class__."],
+["What is the danger of 'weak isolation on dual-use endpoints'?",["Regular users escalate privileges by adding a role field safely","Attackers steal data by injecting SQL into the search bar now","Malicious code executes automatically upon package installation","The server crashes completely due to memory exhaustion locally"],0,
+"A single /updateProfile endpoint is used for users and admins. If a regular user adds a role field, they escalate to admin."],
 // 12
-["Which Ruby template engine uses syntax like <%= 'id' %>?",["ERB","Jinja2","Twig","Tornado"],0,
-"ERB is a Ruby template engine that uses <%= %> syntax for executing Ruby code."],
+["How are 'rating/review/coupon abuse logic flaws' exploited?",["Spamming fake reviews to farm discount codes automatically","Stealing the database credentials from the config file locally","Bypassing the login form using a hardcoded backdoor parameter","Intercepting network traffic to capture session identifiers now"],0,
+"A 'leave a review for 10% off' promo doesn't check if you purchased the product. Attackers spam fake reviews to farm codes."],
 // 13
-["What is the first stage of the SSTI exploitation methodology?",["Detecting if the application is vulnerable to injection","Identifying which specific template engine is running safely","Exploiting the engine to get remote code execution now","Reporting the vulnerability to the development team locally"],0,
-"The first stage is DETECT: determining if the application is vulnerable by testing with math expressions."],
+["Why are automated scanners generally bad at finding BLVs?",["There is no malicious payload; the input looks legitimate","They require a paid enterprise license to unlock the feature","They only scan for network-layer vulnerabilities like open ports","They are strictly programmed to ignore all client-side logic"],0,
+"Because the input is valid and the flow is correct, scanners can't detect that the outcome is unintended business logic abuse."],
 // 14
-["What is the second stage of the SSTI exploitation methodology?",["Identifying which specific template engine is running safely","Detecting if the application is vulnerable to injection here","Exploiting the engine to get remote code execution entirely","Patching the vulnerability on the production server safely"],0,
-"The second stage is IDENTIFY: determining the specific engine (Jinja2, ERB, etc.) via error messages."],
+["What is the core analogy for a Business Logic Vulnerability?",["Abusing a store's 30-day return policy to use items for free","Breaking a window to enter a house instead of using the door","Picking the lock on a safe to steal the money stored inside now","Counterfeiting a ticket to sneak into a crowded concert event"],0,
+"Nothing technically stops someone from buying an item, using it, and returning it before day 30. It's abusing a legitimate process."],
 // 15
-["What is the third stage of the SSTI exploitation methodology?",["Exploiting the engine to get RCE or information disclosure","Detecting if the application is vulnerable to injection now","Identifying which specific template engine is running safely","Implementing strict input validation allowlists entirely here"],0,
-"The third stage is EXPLOIT: using the engine's specific syntax to execute commands or read files."],
+["What is the 'salami slicing' attack an example of?",["Exploiting rounding errors in financial calculations safely","Stealing login credentials via a fake phishing email locally","Bypassing network firewalls using fragmented packet injection","Encrypting the hard drive and demanding a ransom payment now"],0,
+"Salami slicing exploits tiny rounding errors in calculations (like currency conversion) repeatedly to accumulate real value."],
 // 16
-["Which of the following represents Information Disclosure via SSTI?",["Triggering errors that reveal the entire class hierarchy","Executing the 'rm -rf /' command to delete all server files","Redirecting the victim to a malicious phishing domain now","Stealing the victim's session cookies via JavaScript safely"],0,
-"Triggering errors with invalid syntax can reveal the class hierarchy, loaded modules, and configuration details."],
+["What is the primary cause of most Business Logic Vulnerabilities?",["Flawed assumptions development teams make about user behavior","Weak encryption algorithms used for storing user passwords safely","Outdated server hardware running in the data center locally now","Lack of HTTPS encryption configured on the main domain name"],0,
+"Developers assume users will follow a happy path, neglecting alternative, malicious sequences of actions."],
 // 17
-["What does the payload {{ config.__class__.__init__.__globals__ }} do?",["Uses introspection to find the 'os' module globally safely","Executes the 'id' command directly on the server instantly","Deletes the application's database tables entirely and safely","Encrypts the server's hard drive and demands a ransom now"],0,
-"It uses introspection to access the global namespace, which often contains the dangerous 'os' module."],
+["Why is testing for BLVs considered difficult and manual?",["It requires deep understanding of the business context safely","It requires expensive hardware to intercept network traffic now","It requires decrypting the application's source code locally","It requires exploiting memory corruption flaws in the kernel"],0,
+"Testers must understand the intended business rules to know how to twist the workflow to do something the designers never intended."],
 // 18
-["In Jinja2, what is the purpose of __subclasses__() in an SSTI payload?",["Enumerating all loaded classes to find dangerous ones securely","Executing an operating system command directly on the server","Encrypting the payload to bypass the web application firewall","Dropping the user table from the backend database entirely"],0,
-"By enumerating subclasses, attackers can find dangerous classes (like subprocess.Popen) to achieve RCE."],
+["What is the best way to test for client-side trust issues?",["Intercept and modify hidden fields and prices in a proxy safely","Run an automated SQL injection scanner against the target now","Check the server's TLS certificate for weak cryptographic keys","Brute-force the administrative login endpoint with a tool here"],0,
+"Intercept the request in Burp Suite and modify client-controlled values (like prices or quantities) before they reach the server."],
 // 19
-["How is SSTI conceptually similar to SQL injection?",["Both involve concatenating user input into executable logic","Both rely on intercepting network traffic using a proxy tool","Both require the victim to click a malicious link to execute","Both exploit weak encryption algorithms in the database"],0,
-"Just like concatenating user input into a SQL query is bad, concatenating it into a template string is bad."],
+["If an app allows negative quantities, what is the impact?",["The total price becomes negative, potentially crediting accounts","The application crashes due to an unhandled exception locally now","The database drops the user table entirely and permanently here","The web server automatically redirects to a malicious domain"],0,
+"Entering '-5' items at checkout might make the total price negative, potentially crediting the attacker's account with balance."],
 // 20
-["Which HTTP parameter is often targeted for SSTI in labs?",["URL parameters reflecting input like ?message=... securely","The Authorization header containing the bearer token now","The Content-Length header indicating the payload size here","The Accept-Language header specifying the user's locale"],0,
-"URL parameters that reflect input back to the user (like ?message=...) are prime targets for SSTI testing."]
+["How does inconsistent security across channels occur?",["The mobile app API forgets a check the website enforces now","The database encrypts data but the log files display plaintext","The server blocks port 443 but leaves port 80 completely open","The admin uses MFA but the standard users skip the login form"],0,
+"The website enforces 'must verify email before purchase', but the mobile app's API endpoint doing the same action forgot that check."]
 ];
 
 const CHECKLIST_DATA = [
-  { title: "1. Detect SSTI", items: [
-    "Look for URL parameters or form fields reflecting input (e.g., <code>?message=...</code>).",
-    "Test Plaintext Context: Inject <code>{{7*7}}</code> and look for <code>49</code>.",
-    "Test Code Context: Break out of existing expressions (e.g., <code>user.name}}{{7*7}}</code>)."
+  { title: "1. Identify Business Flows", items: [
+    "Map out the intended user journey (e.g., Cart -> Payment -> Confirmation).",
+    "Identify state changes, financial transactions, and privilege modifications.",
+    "Note all parameters involved in these flows (quantities, prices, IDs, roles)."
   ]},
-  { title: "2. Identify Engine", items: [
-    "Send invalid syntax (e.g., <code>&lt;%=foobar%&gt;</code>) to trigger errors.",
-    "Read error messages for engine clues (e.g., <code>erb.rb</code>, <code>jinja2</code>).",
-    "Use engine-specific syntax to confirm (e.g., <code>{{ _self }}</code> for Twig)."
+  { title: "2. Client-Side Trust & Input", items: [
+    "Intercept form submissions and modify hidden fields, prices, or quantities.",
+    "Test negative numbers, zero, or extremely large integers in numeric fields.",
+    "Change user IDs or account numbers to target other users (IDOR)."
   ]},
-  { title: "3. Exploit (RCE & Info Disclosure)", items: [
-    "Jinja2 (Python): <code>{{ config.__class__.__init__.__globals__['os'].popen('id').read() }}</code>",
-    "ERB (Ruby): <code>&lt;%= 'id' %&gt;</code>",
-    "Tornado (Python): <code>{% import os %}{{ os.system('id') }}</code>"
+  { title: "3. Workflow Bypasses", items: [
+    "Skip mandatory steps in a multi-step process (e.g., jump straight to confirmation).",
+    "Go backwards in a workflow after completing a later step.",
+    "Replay specific steps multiple times to see if state is corrupted."
   ]},
-  { title: "4. Remediation", items: [
-    "Never concatenate user input directly into template strings.",
-    "Use fixed templates and pass user input as a separate data parameter.",
-    "Implement strict input validation and sandbox the template engine if possible."
+  { title: "4. Rule Enforcement & Limits", items: [
+    "Test coupons or limits against sessions vs. actual accounts (log out/in).",
+    "Check for rate limits or CAPTCHAs on sensitive actions (gift cards, registrations).",
+    "Test if reviews or feedback can be spammed without purchasing the product."
+  ]},
+  { title: "5. Cross-Channel & Dual-Use", items: [
+    "If a web check exists, test the same action via the mobile app API.",
+    "Test dual-use endpoints (like /updateProfile) by adding admin-only fields to user requests.",
+    "Document all business impacts (financial loss, privilege escalation, data exposure)."
   ]}
 ];
 
 const PAYLOADS = [
-  { name: "1. Detection (Polyglot)", code: "{{7*7}}\n${7*7}\n<%= 7*7 %>\n#{7*7}" },
-  { name: "2. Jinja2 (Python) RCE", code: "{{ self.__init__.__globals__.__builtins__.__import__('os').popen('id').read() }}" },
-  { name: "3. ERB (Ruby) RCE", code: "<%= `id` %>\n<%= IO.read('/etc/passwd') %>" },
-  { name: "4. Tornado (Python) RCE", code: "{% import os %}{{ os.system('id') }}" },
-  { name: "5. Freemarker (Java) RCE", code: "<#assign ex=\"freemarker.template.utility.Execute\"?new()>${ ex(\"id\") }" }
+  { name: "1. Client-Side Price Tampering", code: "POST /cart/checkout HTTP/1.1\nHost: target.com\n\n{\"productId\": 1, \"price\": 1, \"quantity\": 1}" },
+  { name: "2. Negative Quantity", code: "POST /cart/update HTTP/1.1\nHost: target.com\n\n{\"productId\": 1, \"quantity\": -5}" },
+  { name: "3. Skip Payment Step", code: "POST /checkout/confirm HTTP/1.1\nHost: target.com\n\n(Submit final confirmation without hitting /checkout/pay)" },
+  { name: "4. Dual-Endpoint Privilege Escalation", code: "POST /api/updateProfile HTTP/1.1\nHost: target.com\n\n{\"name\":\"John\", \"role\":\"admin\"}" },
+  { name: "5. Coupon Abuse (Session vs Account)", code: "1. Apply coupon NEWUSER10 (Session tracks use)\n2. Log out of the application\n3. Log back in\n4. Apply coupon NEWUSER10 again" }
 ];
 
 let cur=0,score=0;
@@ -611,7 +553,7 @@ function closeCheatWarning() {
 
 function buildChecklist(){
   const c=document.getElementById('checklist');
-  const saved=JSON.parse(localStorage.getItem('ssti_v1')||'{}');
+  const saved=JSON.parse(localStorage.getItem('blv_v1')||'{}');
   let html='';
   let idx=0;
   CHECKLIST_DATA.forEach(section => {
@@ -635,7 +577,7 @@ function buildChecklist(){
       const row = checkbox.parentElement;
       checkbox.onchange = e => {
         saved[idx] = e.target.checked;
-        localStorage.setItem('ssti_v1', JSON.stringify(saved));
+        localStorage.setItem('blv_v1', JSON.stringify(saved));
         row.classList.toggle('done', e.target.checked);
       };
       idx++;

